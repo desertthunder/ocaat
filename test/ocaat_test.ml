@@ -5,6 +5,19 @@ let assert_exit expected args =
 
 let () =
   assert_exit 0 [ "version" ];
+  assert_exit 0
+    [
+      "version";
+      "--color=never";
+      "--json";
+      "--pds";
+      "https://pds.example";
+      "--auth";
+      "token";
+    ];
+  assert_exit 0 [ "version"; "-q" ];
+  assert_exit 0 [ "version"; "-vv" ];
+  assert_exit 0 [ "version"; "--verbosity=debug" ];
   assert_exit 0 [ "tempest"; "defaults" ];
   assert_exit 0 [ "tempest"; "migration-plan" ];
   assert_exit 0 [ "syntax"; "handle"; "check"; "tempest.desertthunder.dev" ];

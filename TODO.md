@@ -126,7 +126,7 @@ result.
 ## Build Order
 
 - [x] Keep the current `syntax` commands.
-- [ ] Add shared global options:
+- [x] Add shared global options:
   - `--color=auto|always|never`
   - `-v`, `--verbose`
   - `--verbosity=quiet|error|warning|info|debug`
