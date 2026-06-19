@@ -1,19 +1,4 @@
 let version = "0.1.0"
-
-module Http = struct
-  type response = { status : int; body : string }
-
-  let get_text url =
-    let open Lwt.Syntax in
-    let uri = Uri.of_string url in
-    let* response, body = Cohttp_lwt_unix.Client.get uri in
-    let status =
-      Cohttp.Response.status response |> Cohttp.Code.code_of_status
-    in
-    let+ body = Cohttp_lwt.Body.to_string body in
-    { status; body }
-end
-
 let pp_lines lines = List.iter (Fmt.pr "%s@.") lines
 
 let print_tempest_defaults () =
@@ -93,6 +78,7 @@ let tempest_cmd =
 let root_cmd =
   let doc = "OCaml AT Protocol CLI for operating a Tempest PDS." in
   let info = Cmd.info "ocaat" ~version ~doc in
-  Cmd.group info [ version_cmd; tempest_cmd; Cli_syntax.cmd ]
+  Cmd.group info
+    [ version_cmd; tempest_cmd; Cli_pds.cmd; Cli_syntax.cmd; Cli_xrpc.cmd ]
 
 let main ?argv () = Cmd.eval' ?argv root_cmd

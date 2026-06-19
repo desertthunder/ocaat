@@ -134,7 +134,7 @@ result.
   - `--json`
   - `--pds <url>`
   - `--auth <token>`
-- [ ] Implement `xrpc query` and `pds describe`; this proves HTTP, URI, JSON, and
+- [x] Implement `xrpc query` and `pds describe`; this proves HTTP, URI, JSON, and
       output formatting.
 - [ ] Add read-only `pds account list/status`.
 - [ ] Port the Tempest Python migration flow into `account migrate` subcommands.

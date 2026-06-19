@@ -1,6 +1,16 @@
 (library
  (name ocaat)
- (modules Ocaat Cli_context Cli_syntax Syntax)
+ (modules
+  Ocaat
+  Cli_context
+  Cli_pds
+  Cli_syntax
+  Cli_xrpc
+  Http
+  Output
+  Pds
+  Syntax
+  Xrpc)
  (libraries
   cmdliner
   fmt
@@ -11,6 +21,7 @@
   logs.cli
   unix
   cohttp-lwt-unix
+  lwt_ssl
   lwt.unix
   yojson
   uri)

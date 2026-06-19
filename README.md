@@ -9,6 +9,8 @@ Object Categorical Abstract Authenticated Transfer Command-line Interface
 ```text
 ocaat
   version
+  pds
+    describe <host>
   tempest
     defaults
     migration-plan
@@ -20,10 +22,11 @@ ocaat
     rkey check <rkey>
     cid check <cid>
     tid check <tid>
-    datetime check <datetime>
-
-    datetime now
     tid generate
+    datetime now
+    datetime check <datetime>
+  xrpc
+    query <method> [--param k=v]...
 ```
 
 ## Global Options
@@ -36,11 +39,4 @@ ocaat
 --json
 --pds <url>
 --auth <token>
-```
-
-These shared options come after the leaf command:
-
-```sh
-dune exec -- ocaat version --json
-dune exec -- ocaat syntax handle check tempest.desertthunder.dev --verbosity=debug
 ```

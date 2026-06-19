@@ -20,6 +20,9 @@ let () =
   assert_exit 0 [ "version"; "--verbosity=debug" ];
   assert_exit 0 [ "tempest"; "defaults" ];
   assert_exit 0 [ "tempest"; "migration-plan" ];
+  assert_exit 1 [ "xrpc"; "query"; "com.atproto.server.describeServer" ];
+  assert_exit 1
+    [ "xrpc"; "query"; "not-an-nsid"; "--pds"; "https://pds.example" ];
   assert_exit 0 [ "syntax"; "handle"; "check"; "tempest.desertthunder.dev" ];
   assert_exit 1 [ "syntax"; "handle"; "check"; "tempest" ];
   assert_exit 1 [ "syntax"; "handle"; "check"; "cn.8" ];

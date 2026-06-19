@@ -16,6 +16,7 @@
   fmt
   logs
   cohttp-lwt-unix
+  lwt_ssl
   lwt_ppx
   yojson
   uri))
