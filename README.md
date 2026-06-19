@@ -2,4 +2,4 @@
 
 Object Categorical Abstract Authenticated Transfer Command-line Interface
 
-`ocaat` is an OCaml/Dune CLI for operating a [my PDS](https://github.com/desertthunder/tempest).
+`ocaat` is an OCaml/Dune CLI for operating [my PDS](https://github.com/desertthunder/tempest).

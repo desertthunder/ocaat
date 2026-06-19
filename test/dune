@@ -1,0 +1,3 @@
+(test
+ (name ocaat_test)
+ (libraries ocaat))
