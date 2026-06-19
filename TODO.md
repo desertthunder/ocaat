@@ -155,7 +155,8 @@ Low-priority areas:
 
 ## Differences From Goat
 
-- Prefer Tempest defaults but keep flags generic enough for any AT Protocol PDS.
+- Keep migration targets explicit while keeping flags generic enough for any AT
+  Protocol PDS.
 - Do not store app passwords or access tokens in cleartext by default.
 - Destructive admin commands require `--yes`.
 - Keep `xrpc` as an escape hatch so every XRPC method does not need a bespoke

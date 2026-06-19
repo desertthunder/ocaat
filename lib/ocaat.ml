@@ -1,17 +1,6 @@
 let version = "0.1.0"
 let pp_lines lines = List.iter (Fmt.pr "%s@.") lines
 
-let print_tempest_defaults () =
-  pp_lines
-    [
-      "Tempest defaults used by the migration helper:";
-      "  TEMPEST=https://tempest.desertthunder.dev";
-      "  TEMPEST_SERVICE_DID=did:web:tempest.desertthunder.dev";
-      "  ARTIFACT_DIR=.sandbox";
-      "";
-      "Future HTTP commands will read these from the environment.";
-    ]
-
 let print_migration_plan () =
   pp_lines
     [
@@ -42,20 +31,6 @@ let version_cmd =
   let info = Cmd.info "version" ~doc:"Print the ocaat version." in
   Cmd.v info term
 
-let tempest_defaults_cmd =
-  let term =
-    Cli_context.with_setup
-      Term.(
-        const (fun () ->
-            print_tempest_defaults ();
-            0)
-        $ const ())
-  in
-  let info =
-    Cmd.info "defaults" ~doc:"Print default Tempest-related environment values."
-  in
-  Cmd.v info term
-
 let tempest_migration_plan_cmd =
   let term =
     Cli_context.with_setup
@@ -73,7 +48,7 @@ let tempest_migration_plan_cmd =
 
 let tempest_cmd =
   let info = Cmd.info "tempest" ~doc:"Tempest PDS helper commands." in
-  Cmd.group info [ tempest_defaults_cmd; tempest_migration_plan_cmd ]
+  Cmd.group info [ tempest_migration_plan_cmd ]
 
 let root_cmd =
   let doc = "OCaml AT Protocol CLI for operating a Tempest PDS." in

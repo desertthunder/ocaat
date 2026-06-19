@@ -33,12 +33,50 @@ type settings = {
   activate_path : string;
 }
 
-let default_did = "did:plc:oga6ppys7zwxlheuqmcm7dac"
-let default_handle = "tempestpds.bsky.social"
-let default_old_pds = "https://jellybaby.us-east.host.bsky.network"
-let default_tempest = "https://tempest.desertthunder.dev"
-let default_tempest_service_did = "did:web:tempest.desertthunder.dev"
-let create_account_lxm = "com.atproto.server.createAccount"
+(** XRPC methods used by the migration flow. *)
+type xrpc_method =
+  | Server_create_account
+  | Server_create_session
+  | Server_get_service_auth
+  | Server_get_session
+  | Server_refresh_session
+  | Server_check_account_status
+  | Server_activate_account
+  | Sync_get_repo
+  | Sync_list_blobs
+  | Sync_get_blob
+  | Repo_import_repo
+  | Repo_list_missing_blobs
+  | Repo_upload_blob
+  | Identity_get_recommended_did_credentials
+  | Identity_request_plc_operation_signature
+  | Identity_sign_plc_operation
+  | Identity_submit_plc_operation
+
+(** Convert a migration XRPC method variant to its atproto NSID. *)
+let xrpc_method_nsid = function
+  | Server_create_account -> "com.atproto.server.createAccount"
+  | Server_create_session -> "com.atproto.server.createSession"
+  | Server_get_service_auth -> "com.atproto.server.getServiceAuth"
+  | Server_get_session -> "com.atproto.server.getSession"
+  | Server_refresh_session -> "com.atproto.server.refreshSession"
+  | Server_check_account_status -> "com.atproto.server.checkAccountStatus"
+  | Server_activate_account -> "com.atproto.server.activateAccount"
+  | Sync_get_repo -> "com.atproto.sync.getRepo"
+  | Sync_list_blobs -> "com.atproto.sync.listBlobs"
+  | Sync_get_blob -> "com.atproto.sync.getBlob"
+  | Repo_import_repo -> "com.atproto.repo.importRepo"
+  | Repo_list_missing_blobs -> "com.atproto.repo.listMissingBlobs"
+  | Repo_upload_blob -> "com.atproto.repo.uploadBlob"
+  | Identity_get_recommended_did_credentials ->
+      "com.atproto.identity.getRecommendedDidCredentials"
+  | Identity_request_plc_operation_signature ->
+      "com.atproto.identity.requestPlcOperationSignature"
+  | Identity_sign_plc_operation -> "com.atproto.identity.signPlcOperation"
+  | Identity_submit_plc_operation -> "com.atproto.identity.submitPlcOperation"
+
+let xrpc_url ~base_url method_ =
+  Http.xrpc_url ~base_url ~method_:(xrpc_method_nsid method_)
 
 type step =
   | Login_source
@@ -88,15 +126,24 @@ let env name default =
 
 let env_or name default = Option.value ~default (env name None)
 
+let required_env name =
+  match env name None with
+  | Some value -> Ok value
+  | None -> Error (name ^ " is required for migration commands")
+
 let join_path dir file =
   if Filename.is_relative file then Filename.concat dir file else file
 
-(** Build migration settings from environment variables and an artifact dir. *)
+(** Build migration settings from environment variables and an artifact dir.
+
+    Account identity and PDS targets are required environment variables. *)
 let settings ?artifact_dir () =
+  let ( let* ) = Result.bind in
   let artifact_dir =
     Option.value ~default:(env_or "ARTIFACT_DIR" ".sandbox") artifact_dir
   in
-  let old_pds = env_or "OLD_PDS" default_old_pds |> Http.normalize_base_url in
+  let* old_pds = required_env "OLD_PDS" in
+  let old_pds = Http.normalize_base_url old_pds in
   let old_auth_pds =
     env "OLD_AUTH_PDS" None
     |> Option.value ~default:old_pds
@@ -107,40 +154,45 @@ let settings ?artifact_dir () =
     |> Option.value ~default:old_auth_pds
     |> Http.normalize_base_url
   in
-  let tempest = env_or "TEMPEST" default_tempest |> Http.normalize_base_url in
+  let* tempest = required_env "TEMPEST" in
+  let tempest = Http.normalize_base_url tempest in
+  let* tempest_service_did = required_env "TEMPEST_SERVICE_DID" in
+  let* did = required_env "DID" in
+  let* handle = required_env "HANDLE" in
   let path name file = env_or name (join_path artifact_dir file) in
-  {
-    artifact_dir;
-    old_pds;
-    old_auth_pds;
-    old_login_pds;
-    tempest;
-    tempest_service_did =
-      env_or "TEMPEST_SERVICE_DID" default_tempest_service_did;
-    did = env_or "DID" default_did;
-    handle = env_or "HANDLE" default_handle;
-    email = env "EMAIL" None;
-    old_password = env "OLD_PASSWORD" None;
-    tempest_password = env "TEMPEST_PASSWORD" None;
-    old_session_path = path "OLD_SESSION_JSON" "old_session.json";
-    service_auth_path =
-      path "SERVICE_AUTH_JSON" "service_auth_create_account.json";
-    car_path = path "REPO_CAR" "tempestpds.repo.car";
-    source_blobs_path = path "SOURCE_BLOBS_JSON" "source_blobs.json";
-    create_account_path =
-      path "TEMPEST_CREATE_ACCOUNT_JSON" "tempest_create_account.json";
-    import_repo_path =
-      path "TEMPEST_IMPORT_REPO_JSON" "tempest_import_repo.json";
-    status_path = path "TEMPEST_STATUS_JSON" "tempest_account_status.json";
-    missing_blobs_path =
-      path "TEMPEST_MISSING_BLOBS_JSON" "tempest_missing_blobs.json";
-    plc_recommended_path = path "PLC_RECOMMENDED_JSON" "plc_recommended.json";
-    plc_token_path = path "PLC_TOKEN_JSON" "plc_token.json";
-    plc_signed_path =
-      path "PLC_SIGNED_OPERATION_JSON" "plc_signed_operation.json";
-    plc_submit_path = path "PLC_SUBMIT_JSON" "plc_submit.json";
-    activate_path = path "TEMPEST_ACTIVATE_JSON" "tempest_activate_account.json";
-  }
+  Ok
+    {
+      artifact_dir;
+      old_pds;
+      old_auth_pds;
+      old_login_pds;
+      tempest;
+      tempest_service_did;
+      did;
+      handle;
+      email = env "EMAIL" None;
+      old_password = env "OLD_PASSWORD" None;
+      tempest_password = env "TEMPEST_PASSWORD" None;
+      old_session_path = path "OLD_SESSION_JSON" "old_session.json";
+      service_auth_path =
+        path "SERVICE_AUTH_JSON" "service_auth_create_account.json";
+      car_path = path "REPO_CAR" "tempestpds.repo.car";
+      source_blobs_path = path "SOURCE_BLOBS_JSON" "source_blobs.json";
+      create_account_path =
+        path "TEMPEST_CREATE_ACCOUNT_JSON" "tempest_create_account.json";
+      import_repo_path =
+        path "TEMPEST_IMPORT_REPO_JSON" "tempest_import_repo.json";
+      status_path = path "TEMPEST_STATUS_JSON" "tempest_account_status.json";
+      missing_blobs_path =
+        path "TEMPEST_MISSING_BLOBS_JSON" "tempest_missing_blobs.json";
+      plc_recommended_path = path "PLC_RECOMMENDED_JSON" "plc_recommended.json";
+      plc_token_path = path "PLC_TOKEN_JSON" "plc_token.json";
+      plc_signed_path =
+        path "PLC_SIGNED_OPERATION_JSON" "plc_signed_operation.json";
+      plc_submit_path = path "PLC_SUBMIT_JSON" "plc_submit.json";
+      activate_path =
+        path "TEMPEST_ACTIVATE_JSON" "tempest_activate_account.json";
+    }
 
 let ensure_artifact_dir settings =
   if not (Sys.file_exists settings.artifact_dir) then
@@ -271,8 +323,8 @@ let login_source settings =
         | Some token -> `Assoc (("authFactorToken", `String token) :: fields)
       in
       let url =
-        Http.xrpc_url ~base_url:settings.old_login_pds
-          ~method_:"com.atproto.server.createSession" ~params:[]
+        xrpc_url ~base_url:settings.old_login_pds Server_create_session
+          ~params:[]
       in
       let open Lwt.Syntax in
       let+ result = post_json ~json:payload url in
@@ -297,11 +349,11 @@ let get_service_auth settings =
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
       let url =
-        Http.xrpc_url ~base_url:settings.old_pds
-          ~method_:"com.atproto.server.getServiceAuth"
+        xrpc_url ~base_url:settings.old_pds Server_get_service_auth
           ~params:
             [
-              ("aud", settings.tempest_service_did); ("lxm", create_account_lxm);
+              ("aud", settings.tempest_service_did);
+              ("lxm", xrpc_method_nsid Server_create_account);
             ]
       in
       let open Lwt.Syntax in
@@ -317,8 +369,7 @@ let source_session_status settings =
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
       let url =
-        Http.xrpc_url ~base_url:settings.old_auth_pds
-          ~method_:"com.atproto.server.getSession" ~params:[]
+        xrpc_url ~base_url:settings.old_auth_pds Server_get_session ~params:[]
       in
       get_json ~auth url
 
@@ -328,8 +379,7 @@ let export_car settings =
   | Invalid reason -> Lwt.return (Error ("invalid DID: " ^ reason))
   | Valid ->
       let url =
-        Http.xrpc_url ~base_url:settings.old_pds
-          ~method_:"com.atproto.sync.getRepo"
+        xrpc_url ~base_url:settings.old_pds Sync_get_repo
           ~params:[ ("did", settings.did) ]
       in
       let open Lwt.Syntax in
@@ -344,8 +394,7 @@ let export_car settings =
 (** List source blob CIDs and write [source_blobs.json]. *)
 let list_source_blobs settings =
   let url =
-    Http.xrpc_url ~base_url:settings.old_pds
-      ~method_:"com.atproto.sync.listBlobs"
+    xrpc_url ~base_url:settings.old_pds Sync_list_blobs
       ~params:[ ("did", settings.did) ]
   in
   let open Lwt.Syntax in
@@ -368,8 +417,7 @@ let download_source_blobs settings =
             | [] -> Lwt.return (Ok (`Assoc [ ("downloaded", `Int count) ]))
             | `String cid :: rest -> (
                 let url =
-                  Http.xrpc_url ~base_url:settings.old_pds
-                    ~method_:"com.atproto.sync.getBlob"
+                  xrpc_url ~base_url:settings.old_pds Sync_get_blob
                     ~params:[ ("did", settings.did); ("cid", cid) ]
                 in
                 let* response = Http.get_bytes url in
@@ -411,8 +459,7 @@ let create_account settings =
           ]
       in
       let url =
-        Http.xrpc_url ~base_url:settings.tempest
-          ~method_:"com.atproto.server.createAccount" ~params:[]
+        xrpc_url ~base_url:settings.tempest Server_create_account ~params:[]
       in
       let open Lwt.Syntax in
       let+ result = post_json ~json url in
@@ -427,8 +474,7 @@ let refresh_session settings =
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
       let url =
-        Http.xrpc_url ~base_url:settings.tempest
-          ~method_:"com.atproto.server.refreshSession" ~params:[]
+        xrpc_url ~base_url:settings.tempest Server_refresh_session ~params:[]
       in
       let open Lwt.Syntax in
       let+ result = post_json ~auth ~json:(`Assoc []) url in
@@ -443,8 +489,7 @@ let import_repo settings =
   | Error reason, _ | _, Error reason -> Lwt.return (Error reason)
   | Ok auth, Ok body ->
       let url =
-        Http.xrpc_url ~base_url:settings.tempest
-          ~method_:"com.atproto.repo.importRepo" ~params:[]
+        xrpc_url ~base_url:settings.tempest Repo_import_repo ~params:[]
       in
       let open Lwt.Syntax in
       let+ response =
@@ -461,8 +506,8 @@ let check_status settings =
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
       let url =
-        Http.xrpc_url ~base_url:settings.tempest
-          ~method_:"com.atproto.server.checkAccountStatus" ~params:[]
+        xrpc_url ~base_url:settings.tempest Server_check_account_status
+          ~params:[]
       in
       let open Lwt.Syntax in
       let+ result = get_json ~auth url in
@@ -475,8 +520,7 @@ let list_missing_blobs settings =
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
       let url =
-        Http.xrpc_url ~base_url:settings.tempest
-          ~method_:"com.atproto.repo.listMissingBlobs" ~params:[]
+        xrpc_url ~base_url:settings.tempest Repo_list_missing_blobs ~params:[]
       in
       let open Lwt.Syntax in
       let+ result = get_json ~auth url in
@@ -512,8 +556,8 @@ let upload_missing_blobs settings =
                     | Error reason -> Lwt.return (Error reason)
                     | Ok body ->
                         let url =
-                          Http.xrpc_url ~base_url:settings.tempest
-                            ~method_:"com.atproto.repo.uploadBlob" ~params:[]
+                          xrpc_url ~base_url:settings.tempest Repo_upload_blob
+                            ~params:[]
                         in
                         let* response =
                           Http.post_bytes ~auth ~content_type:(mime_type path)
@@ -540,9 +584,8 @@ let plc_recommended settings =
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
       let url =
-        Http.xrpc_url ~base_url:settings.tempest
-          ~method_:"com.atproto.identity.getRecommendedDidCredentials"
-          ~params:[]
+        xrpc_url ~base_url:settings.tempest
+          Identity_get_recommended_did_credentials ~params:[]
       in
       let open Lwt.Syntax in
       let+ result = get_json ~auth url in
@@ -557,9 +600,8 @@ let plc_request_token settings =
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
       let url =
-        Http.xrpc_url ~base_url:settings.old_auth_pds
-          ~method_:"com.atproto.identity.requestPlcOperationSignature"
-          ~params:[]
+        xrpc_url ~base_url:settings.old_auth_pds
+          Identity_request_plc_operation_signature ~params:[]
       in
       let json =
         match settings.old_password with
@@ -601,8 +643,8 @@ let plc_sign settings =
       in
       let json = `Assoc (("token", `String token) :: fields) in
       let url =
-        Http.xrpc_url ~base_url:settings.old_auth_pds
-          ~method_:"com.atproto.identity.signPlcOperation" ~params:[]
+        xrpc_url ~base_url:settings.old_auth_pds Identity_sign_plc_operation
+          ~params:[]
       in
       let open Lwt.Syntax in
       let+ result = post_json ~auth ~json url in
@@ -621,8 +663,8 @@ let plc_submit settings =
       | Some operation ->
           let json = `Assoc [ ("operation", operation) ] in
           let url =
-            Http.xrpc_url ~base_url:settings.tempest
-              ~method_:"com.atproto.identity.submitPlcOperation" ~params:[]
+            xrpc_url ~base_url:settings.tempest Identity_submit_plc_operation
+              ~params:[]
           in
           let open Lwt.Syntax in
           let+ result = post_json ~auth ~json url in
@@ -637,8 +679,7 @@ let activate settings =
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
       let url =
-        Http.xrpc_url ~base_url:settings.tempest
-          ~method_:"com.atproto.server.activateAccount" ~params:[]
+        xrpc_url ~base_url:settings.tempest Server_activate_account ~params:[]
       in
       let open Lwt.Syntax in
       let+ result = post_json ~auth ~json:(`Assoc []) url in

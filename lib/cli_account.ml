@@ -2,14 +2,18 @@ open Cmdliner
 open Cmdliner.Term.Syntax
 
 let run_migrate step artifact_dir _context =
-  let settings = Migration.settings ?artifact_dir () in
-  match Lwt_main.run (Migration.run step settings) with
+  match Migration.settings ?artifact_dir () with
   | Error reason ->
       Fmt.epr "%s@." reason;
       1
-  | Ok json ->
-      Migration.log_json (Migration.step_name step) json;
-      0
+  | Ok settings -> (
+      match Lwt_main.run (Migration.run step settings) with
+      | Error reason ->
+          Fmt.epr "%s@." reason;
+          1
+      | Ok json ->
+          Migration.log_json (Migration.step_name step) json;
+          0)
 
 let artifact_dir_arg =
   Arg.(

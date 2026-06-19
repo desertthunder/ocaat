@@ -18,7 +18,6 @@ let () =
   assert_exit 0 [ "version"; "-q" ];
   assert_exit 0 [ "version"; "-vv" ];
   assert_exit 0 [ "version"; "--verbosity=debug" ];
-  assert_exit 0 [ "tempest"; "defaults" ];
   assert_exit 0 [ "tempest"; "migration-plan" ];
   assert_exit 1
     [
