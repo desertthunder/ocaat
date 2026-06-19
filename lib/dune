@@ -1,6 +1,6 @@
 (library
  (name ocaat)
- (modules Ocaat)
+ (modules Ocaat Cli_context Cli_syntax Syntax)
  (libraries
   cmdliner
   fmt
@@ -9,6 +9,7 @@
   logs
   logs.fmt
   logs.cli
+  unix
   cohttp-lwt-unix
   lwt.unix
   yojson
