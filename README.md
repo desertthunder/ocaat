@@ -11,6 +11,9 @@ ocaat
   version
   pds
     describe <host>
+    account
+      list [--handles] [--json] <host>
+      status [--pds <url>] [--json] <did>
   tempest
     defaults
     migration-plan
