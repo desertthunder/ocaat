@@ -119,7 +119,7 @@ result.
 - [x] Implement `xrpc query` and `pds describe`; this proves HTTP, URI, JSON, and
       output formatting.
 - [x] Add read-only `pds account list/status`.
-- [ ] Port the Tempest Python migration flow into `account migrate` subcommands.
+- [x] Port the Tempest Python migration flow into `account migrate` subcommands.
 - [ ] Add admin commands with explicit confirmation for destructive operations.
 - [ ] Add repo/blob backup commands.
 - [ ] Add lower-priority firehose, lexicon, key, and relay commands only if they

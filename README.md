@@ -9,6 +9,26 @@ Object Categorical Abstract Authenticated Transfer Command-line Interface
 ```text
 ocaat
   version
+  account
+    migrate
+      full
+      login-source
+      service-auth
+      source-session-status
+      export-car
+      list-source-blobs
+      download-source-blobs
+      create-account
+      refresh-session
+      import-repo
+      status
+      missing-blobs
+      upload-missing-blobs
+      plc-recommended
+      plc-request-token
+      plc-sign
+      plc-submit
+      activate
   pds
     describe <host>
     account

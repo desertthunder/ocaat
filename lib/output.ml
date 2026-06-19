@@ -23,7 +23,7 @@ let print_json ~compact body =
 
     Unsuccessful responses are written to stderr, preserving non-JSON bodies
     because XRPC services may return generic proxy errors. *)
-let print_http_response ~json response =
+let print_http_response ~json (response : Http.response) =
   if response.Http.status >= 200 && response.status < 300 then (
     print_json ~compact:json response.body;
     0)

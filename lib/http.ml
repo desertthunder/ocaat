@@ -3,10 +3,17 @@
 type response = { status : int; body : string }
 (** Text response returned by the HTTP client. *)
 
+type bytes_response = { status : int; headers : Cohttp.Header.t; body : string }
+(** Binary/text response with headers, used for CAR and blob transfer. *)
+
 (** Build HTTP headers for an optional bearer token. *)
 let auth_headers = function
   | None -> Cohttp.Header.init ()
   | Some token -> Cohttp.Header.init_with "Authorization" ("Bearer " ^ token)
+
+let add_content_type headers = function
+  | None -> headers
+  | Some content_type -> Cohttp.Header.add headers "Content-Type" content_type
 
 (** Normalize a host or service URL into an absolute HTTP(S) base URL.
 
@@ -52,3 +59,35 @@ let get_text ?auth url =
   let status = Cohttp.Response.status response |> Cohttp.Code.code_of_status in
   let+ body = Cohttp_lwt.Body.to_string body in
   { status; body }
+
+(** GET a URL and keep response headers with the body. *)
+let get_bytes ?auth url =
+  let open Lwt.Syntax in
+  let uri = Uri.of_string url in
+  let headers = auth_headers auth in
+  let* response, body = Cohttp_lwt_unix.Client.get ~headers uri in
+  let status = Cohttp.Response.status response |> Cohttp.Code.code_of_status in
+  let headers = Cohttp.Response.headers response in
+  let+ body = Cohttp_lwt.Body.to_string body in
+  { status; headers; body }
+
+(** POST a text body and return the response as text. *)
+let post_text ?auth ?content_type ~body url =
+  let open Lwt.Syntax in
+  let uri = Uri.of_string url in
+  let headers = auth_headers auth |> Fun.flip add_content_type content_type in
+  let body = Cohttp_lwt.Body.of_string body in
+  let* response, body = Cohttp_lwt_unix.Client.post ~headers ~body uri in
+  let status = Cohttp.Response.status response |> Cohttp.Code.code_of_status in
+  let+ body = Cohttp_lwt.Body.to_string body in
+  { status; body }
+
+(** POST a JSON object body. *)
+let post_json ?auth ~json url =
+  post_text ?auth ~content_type:"application/json"
+    ~body:(Yojson.Safe.to_string json)
+    url
+
+(** POST a binary body and return the response as text. *)
+let post_bytes ?auth ?content_type ~body url =
+  post_text ?auth ?content_type ~body url

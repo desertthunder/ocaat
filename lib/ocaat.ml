@@ -79,6 +79,13 @@ let root_cmd =
   let doc = "OCaml AT Protocol CLI for operating a Tempest PDS." in
   let info = Cmd.info "ocaat" ~version ~doc in
   Cmd.group info
-    [ version_cmd; tempest_cmd; Cli_pds.cmd; Cli_syntax.cmd; Cli_xrpc.cmd ]
+    [
+      version_cmd;
+      tempest_cmd;
+      Cli_account.cmd;
+      Cli_pds.cmd;
+      Cli_syntax.cmd;
+      Cli_xrpc.cmd;
+    ]
 
 let main ?argv () = Cmd.eval' ?argv root_cmd

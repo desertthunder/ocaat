@@ -20,6 +20,22 @@ let () =
   assert_exit 0 [ "version"; "--verbosity=debug" ];
   assert_exit 0 [ "tempest"; "defaults" ];
   assert_exit 0 [ "tempest"; "migration-plan" ];
+  assert_exit 1
+    [
+      "account";
+      "migrate";
+      "login-source";
+      "--artifact-dir";
+      "/tmp/ocaat-test-no-network";
+    ];
+  assert_exit 1
+    [
+      "account";
+      "migrate";
+      "service-auth";
+      "--artifact-dir";
+      "/tmp/ocaat-test-no-network";
+    ];
   assert_exit 1 [ "xrpc"; "query"; "com.atproto.server.describeServer" ];
   assert_exit 1
     [ "xrpc"; "query"; "not-an-nsid"; "--pds"; "https://pds.example" ];

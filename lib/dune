@@ -2,11 +2,13 @@
  (name ocaat)
  (modules
   Ocaat
+  Cli_account
   Cli_context
   Cli_pds
   Cli_syntax
   Cli_xrpc
   Http
+  Migration
   Output
   Pds
   Syntax
