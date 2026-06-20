@@ -18,6 +18,7 @@
   cohttp-lwt-unix
   lwt_ssl
   lwt_ppx
+  mirage-crypto-rng
   yojson
   zarith
   uri))

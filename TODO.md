@@ -93,7 +93,7 @@ ocaat                                     lib/cli_root.ml
     submit <signed-operation.json>
   key                                     lib/cli_key.ml
     inspect <key>                         [read-only]
-    generate                              [local secret generation]
+    generate [--type P-256|K-256] [--terse] [local secret generation]
   relay                                   lib/cli_relay.ml
     account
       list [--relay-host <url>] [--collection <nsid>] [--json] [read-only]
@@ -172,8 +172,8 @@ result.
       output formatting.
 - [x] Add read-only `pds account list/status`.
 - [x] Port the Tempest Python migration flow into `account migrate` subcommands.
-- [x] Add low-complexity read-only `key inspect` and relay
-      `account/host list/status`.
+- [x] Add low-complexity read-only `key inspect`, local `key generate`, and
+      relay `account/host list/status`.
 - [ ] Add admin commands with explicit confirmation for destructive operations.
 - [ ] Add repo/blob backup commands.
 - [ ] Add remaining lower-priority firehose, lexicon, key, and relay commands
@@ -209,7 +209,8 @@ Low-priority areas:
 - Bluesky app posting helpers
 - Lexicon publishing workflows
 - Relay admin commands
-- Key generation unless needed for migration or PLC work
+- Additional key management beyond generation/inspection unless needed for
+  migration or PLC work
 
 ## Differences From Goat
 

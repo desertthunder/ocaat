@@ -36,6 +36,7 @@ ocaat
       list [--handles] [--json] <host>
       status [--pds <url>] [--json] <did>
   key
+    generate [--type P-256|K-256] [--terse]
     inspect <key>
   relay
     account

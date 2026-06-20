@@ -1,6 +1,28 @@
 open Cmdliner
 open Cmdliner.Term.Syntax
 
+let print_generated ~terse key =
+  if terse then Fmt.pr "%s@." key.Key.secret_multibase
+  else (
+    Fmt.pr "Key Type: %s@." (Key.kind_type key.kind);
+    Fmt.pr
+      "Secret Key (Multibase Syntax): save this securely (eg, add to password \
+       manager)@.";
+    Fmt.pr "\t%s@." key.secret_multibase;
+    Fmt.pr
+      "Public Key (DID Key Syntax): share or publish this (eg, in DID \
+       document)@.";
+    Fmt.pr "\t%s@." key.public_did_key)
+
+let generate kind terse =
+  match Key.generate kind with
+  | Error reason ->
+      Fmt.epr "key generation failed: %s@." reason;
+      1
+  | Ok key ->
+      print_generated ~terse key;
+      0
+
 let inspect value =
   match Key.inspect value with
   | Error reason ->
@@ -40,7 +62,39 @@ let inspect_cmd =
        ~doc:"Parse and output metadata about a public or secret key.")
     term
 
+let generate_cmd =
+  let key_type =
+    let types =
+      [
+        ("P-256", Key.P256_private);
+        ("p256", Key.P256_private);
+        ("ES256", Key.P256_private);
+        ("secp256r1", Key.P256_private);
+        ("K-256", Key.K256_private);
+        ("k256", Key.K256_private);
+        ("ES256K", Key.K256_private);
+        ("secp256k1", Key.K256_private);
+      ]
+    in
+    Arg.(
+      value
+      & opt (enum types) Key.P256_private
+      & info [ "type"; "t" ] ~docv:"TYPE"
+          ~doc:"Curve type to generate. Defaults to P-256.")
+  in
+  let terse =
+    Arg.(
+      value & flag
+      & info [ "terse" ] ~doc:"Print only the secret key multibase value.")
+  in
+  let term =
+    Cli_context.with_setup
+      (let+ key_type = key_type and+ terse = terse in
+       generate key_type terse)
+  in
+  Cmd.v (Cmd.info "generate" ~doc:"Create a new secret key.") term
+
 let cmd =
   Cmd.group
-    (Cmd.info "key" ~doc:"Read-only cryptographic key inspection commands.")
-    [ inspect_cmd ]
+    (Cmd.info "key" ~doc:"Cryptographic key inspection and generation commands.")
+    [ generate_cmd; inspect_cmd ]

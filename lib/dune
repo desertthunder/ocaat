@@ -26,6 +26,7 @@
   logs.fmt
   logs.cli
   zarith
+  mirage-crypto-rng.unix
   unix
   cohttp-lwt-unix
   lwt_ssl

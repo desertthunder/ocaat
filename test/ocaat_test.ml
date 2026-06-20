@@ -50,6 +50,8 @@ let () =
     [ "key"; "inspect"; "z42tvqQS5sVhaV1jLZ5P6ZKEPEbSpYavNVmT88YDYV3MEZ8D" ];
   assert_exit 0
     [ "key"; "inspect"; "z3vLWgA9nXoPzxsJJafDY9BPrZd3EDWjvcCtYfrFxZ7xbMVi" ];
+  assert_exit 0 [ "key"; "generate"; "--terse" ];
+  assert_exit 0 [ "key"; "generate"; "--type"; "K-256"; "--terse" ];
   assert_exit 1 [ "key"; "inspect"; "not-a-key" ];
   assert_exit 0 [ "syntax"; "handle"; "check"; "tempest.desertthunder.dev" ];
   assert_exit 1 [ "syntax"; "handle"; "check"; "tempest" ];

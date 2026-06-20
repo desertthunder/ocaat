@@ -9,6 +9,12 @@ type inspected = {
   did_key : string option;
 }
 
+type generated = {
+  kind : kind;
+  secret_multibase : string;
+  public_did_key : string;
+}
+
 type curve = {
   p : Z.t;
   a : Z.t;
@@ -17,6 +23,7 @@ type curve = {
   gx : Z.t;
   gy : Z.t;
   public_prefix : string;
+  private_prefix : string;
 }
 
 type point = Infinity | Point of Z.t * Z.t
@@ -112,6 +119,7 @@ let p256 =
       z_of_hex
         "4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5";
     public_prefix = "\x80\x24";
+    private_prefix = "\x86\x26";
   }
 
 let k256 =
@@ -131,6 +139,7 @@ let k256 =
       z_of_hex
         "483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8";
     public_prefix = "\xe7\x01";
+    private_prefix = "\x81\x26";
   }
 
 let mod_curve curve value =
@@ -204,6 +213,42 @@ let kind_type = function
   | P256_private -> "P-256 / secp256r1 / ES256 private key"
   | K256_public -> "K-256 / secp256k1 / ES256K public key"
   | K256_private -> "K-256 / secp256k1 / ES256K private key"
+
+let rng_initialized = ref false
+
+let ensure_rng () =
+  if not !rng_initialized then (
+    Mirage_crypto_rng_unix.use_default ();
+    rng_initialized := true)
+
+let random_private_bytes curve =
+  ensure_rng ();
+  let rec loop () =
+    let bytes = Mirage_crypto_rng.generate 32 in
+    let scalar = z_of_bytes bytes in
+    if Z.gt scalar Z.zero && Z.lt scalar curve.n then bytes else loop ()
+  in
+  loop ()
+
+let generate kind =
+  let curve, private_kind =
+    match kind with
+    | P256_private | P256_public -> (p256, P256_private)
+    | K256_private | K256_public -> (k256, K256_private)
+  in
+  let private_bytes = random_private_bytes curve in
+  let secret_multibase =
+    multibase_of_payload (curve.private_prefix ^ private_bytes)
+  in
+  match derive_public_multibase curve private_bytes with
+  | None -> Error "failed to derive public key"
+  | Some public_multibase ->
+      Ok
+        {
+          kind = private_kind;
+          secret_multibase;
+          public_did_key = did_key_of_multibase public_multibase;
+        }
 
 let parse_multibase value =
   if String.length value < 2 || value.[0] <> 'z' then
