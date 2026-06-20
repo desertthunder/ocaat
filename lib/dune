@@ -4,13 +4,17 @@
   Ocaat
   Cli_account
   Cli_context
+  Cli_key
   Cli_pds
+  Cli_relay
   Cli_syntax
   Cli_xrpc
   Http
+  Key
   Migration
   Output
   Pds
+  Relay
   Syntax
   Xrpc)
  (libraries
@@ -21,6 +25,7 @@
   logs
   logs.fmt
   logs.cli
+  zarith
   unix
   cohttp-lwt-unix
   lwt_ssl

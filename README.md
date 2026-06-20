@@ -35,6 +35,15 @@ ocaat
     account
       list [--handles] [--json] <host>
       status [--pds <url>] [--json] <did>
+  key
+    inspect <key>
+  relay
+    account
+      list [--relay-host <url>] [--collection <nsid>] [--json]
+      status [--relay-host <url>] [--json] <did>
+    host
+      list [--relay-host <url>] [--json]
+      status [--relay-host <url>] [--json] <hostname>
   tempest
     migration-plan
   syntax
@@ -66,6 +75,8 @@ ocaat
 --pds <url>
 --auth <token>
 ```
+
+Note: NO_COLOR=1 disables default color output[^nc]
 
 </details>
 
@@ -146,3 +157,5 @@ inside that directory.
 
 Activation and PLC update steps remain separate so they can be reviewed before
 the account is cut over.
+
+[^nc]: https://no-color.org/

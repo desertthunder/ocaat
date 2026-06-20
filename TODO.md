@@ -19,31 +19,31 @@ of `goat` without inheriting unnecessary scope.
 ```text
 ocaat                                     lib/cli_root.ml
   pds                                     lib/cli_pds.ml
-    describe <host>
+    describe <host>                       [read-only]
     account
-      list [--handles] [--json] <host>
-      status [--pds <url>] <did>
+      list [--handles] [--json] <host>    [read-only]
+      status [--pds <url>] <did>          [read-only]
     admin
       account                             lib/cli_pds_admin.ml
         create --handle <handle> --email <email> [--password <password>]
-        list [--json]
-        info <handle-or-did>
+        list [--json]                     [read-only]
+        info <handle-or-did>              [read-only]
         update <handle-or-did> [--email <email>] [--handle <handle>]
         reset-password <handle-or-did>
         takedown [--reverse] <handle-or-did>
         delete [--yes] <handle-or-did>
       blob                                lib/cli_pds_admin.ml
-        status <handle-or-did> <cid>
+        status <handle-or-did> <cid>      [read-only]
         purge [--reverse] <handle-or-did> <cid>
       invite
         create --count <n> --uses <n>
   account                                 lib/cli_account.ml
     login --pds <url> --identifier <handle-or-email>
     logout
-    status [<handle-or-did>]
-    check-auth
+    status [<handle-or-did>]              [read-only]
+    check-auth                            [read-only]
     service-auth --aud <did> --lxm <nsid>
-    missing-blobs
+    missing-blobs                         [read-only]
     activate
     deactivate
     migrate
@@ -55,49 +55,100 @@ ocaat                                     lib/cli_root.ml
       --email <email>
       [--artifact-dir <dir>]
     plc                                  lib/cli_account.ml
-      recommended
+      recommended                         [read-only]
       request-token
       sign [--token <token>] <recommended.json>
       submit <operation.json>
-      current <did-or-handle>
+      current <did-or-handle>             [read-only]
   repo                                    lib/cli_repo.ml
-    export <handle-or-did> [-o <file.car>]
+    export <handle-or-did> [-o <file.car>] [read-only]
     import <file.car>
-    list <file.car>
-    inspect <file.car>
-    unpack <file.car> [-o <dir>]
+    list <file.car>                       [read-only]
+    inspect <file.car>                    [read-only]
+    mst <file.car>                        [read-only]
+    unpack <file.car> [-o <dir>]          [read-only]
   blob                                    lib/cli_blob.ml
-    list <handle-or-did>
-    download <handle-or-did> <cid> [-o <path>]
-    export <handle-or-did> [-o <dir>]
+    list <handle-or-did>                  [read-only]
+    download <handle-or-did> <cid> [-o <path>] [read-only]
+    export <handle-or-did> [-o <dir>]     [read-only]
     upload <file>
+    compute <file>                        [read-only]
   record                                  lib/cli_record.ml
-    get <at-uri>
-    list [--collections] <handle-or-did>
+    get <at-uri>                          [read-only]
+    list [--collections] <handle-or-did>  [read-only]
     create <file.json>
     update --rkey <rkey> <file.json>
     delete --collection <nsid> --rkey <rkey>
   resolve                                 lib/cli_resolve.ml
-    <handle-or-did>
-    --did <handle-or-did>
+    <handle-or-did>                       [read-only]
+    --did <handle-or-did>                 [read-only]
   plc                                     lib/cli_plc.ml
-    history <did-or-handle>
-    data <did-or-handle>
-    dump [--cursor <cursor>] [--tail]
+    history <did-or-handle>               [read-only]
+    data <did-or-handle>                  [read-only]
+    dump [--cursor <cursor>] [--tail]     [read-only]
+    genesis                               [read-only]
+    calc-did <signed-genesis.json>        [read-only]
+    update <did>                          [read-only draft]
+    sign <operation.json>
+    submit <signed-operation.json>
+  key                                     lib/cli_key.ml
+    inspect <key>                         [read-only]
+    generate                              [local secret generation]
+  relay                                   lib/cli_relay.ml
+    account
+      list [--relay-host <url>] [--collection <nsid>] [--json] [read-only]
+      status [--relay-host <url>] [--json] <did>      [read-only]
+    host
+      list [--relay-host <url>] [--json]              [read-only]
+      status [--relay-host <url>] [--json] <hostname> [read-only]
+      diff <relay-a-url> <relay-b-url>                [read-only]
+      request-crawl <hostname>
+    admin
+      account list                       [read-only]
+      host list                          [read-only]
+      domain list                        [read-only]
+      consumer list                      [read-only]
+      account takedown [--reverse] <account>
+      host add <hostname>
+      host block [--reverse] <hostname>
+      host config <hostname> [--account-limit <n>]
+      domain ban [--reverse] <domain>
+  lex                                     lib/cli_lex.ml
+    resolve [--did] <nsid>                [read-only]
+    list <nsid>                           [read-only]
+    parse <path>...                       [read-only]
+    validate <uri-or-path>                [read-only]
+    lint [<file-or-dir>]...               [read-only]
+    status [<file-or-dir>]...             [read-only]
+    breaking [<file-or-dir>]...           [read-only]
+    diff <from> <to>                      [read-only]
+    check-dns [<file-or-dir>]...          [read-only]
+    pull <nsid-pattern>...                [local file write]
+    new <nsid>                            [local file write]
+    publish <path>...
+    unpublish <nsid>...
+  firehose                                lib/cli_firehose.ml
+    stream [--cursor <cursor>]            [read-only stream]
+  bsky                                    lib/cli_bsky.ml
+    prefs export                          [read-only]
+    prefs import <file>
+    post <text>
   xrpc                                    lib/cli_xrpc.ml
-    query <method> [--param k=v]...
+    query <method> [--param k=v]...       [read-only]
     procedure <method> [--body <file>] [--param k=v]...
   syntax                                  lib/cli_syntax.ml
-    handle check <handle>
-    did check <did>
-    nsid check <nsid>
-    at-uri check <at-uri>
-    rkey check <rkey>
-    cid check <cid>
-    tid check <tid>
-    tid generate
-    datetime now
-    datetime check <datetime>
+    handle check <handle>                 [read-only]
+    did check <did>                       [read-only]
+    nsid check <nsid>                     [read-only]
+    at-uri check <at-uri>                 [read-only]
+    rkey check <rkey>                     [read-only]
+    cid check <cid>                       [read-only]
+    tid check <tid>                       [read-only]
+    tid inspect <tid>                     [read-only]
+    tid generate                          [local generation]
+    datetime now                          [read-only]
+    datetime check <datetime>             [read-only]
+    language check <language>             [read-only]
 ```
 
 The `lib/cli_*.ml` modules should stay thin: parse command-line arguments,
@@ -110,6 +161,7 @@ result.
 - [x] Keep the current `syntax` commands.
 - [x] Add shared global options:
   - `--color=auto|always|never`
+  - `NO_COLOR`
   - `-v`, `--verbose`
   - `--verbosity=quiet|error|warning|info|debug`
   - `-q`, `--quiet`
@@ -120,10 +172,12 @@ result.
       output formatting.
 - [x] Add read-only `pds account list/status`.
 - [x] Port the Tempest Python migration flow into `account migrate` subcommands.
+- [x] Add low-complexity read-only `key inspect` and relay
+      `account/host list/status`.
 - [ ] Add admin commands with explicit confirmation for destructive operations.
 - [ ] Add repo/blob backup commands.
-- [ ] Add lower-priority firehose, lexicon, key, and relay commands only if they
-      become useful for operating Tempest.
+- [ ] Add remaining lower-priority firehose, lexicon, key, and relay commands
+      only if they become useful for operating Tempest.
 
 ## Goat Feature Inventory
 
@@ -145,13 +199,17 @@ Medium-priority areas:
 - Syntax helpers beyond the current starter set
 - Firehose inspection
 - PLC directory inspection
+- Additional read-only goat commands worth considering:
+  `account status/check-auth/missing-blobs`, `account plc recommended/current`,
+  `repo list/inspect/mst/unpack`, `blob compute`, `bsky prefs export`,
+  `relay host diff`, and lexicon lint/status/diff/validation helpers.
 
 Low-priority areas:
 
 - Bluesky app posting helpers
 - Lexicon publishing workflows
 - Relay admin commands
-- Key generation/inspection unless needed for migration or PLC work
+- Key generation unless needed for migration or PLC work
 
 ## Differences From Goat
 

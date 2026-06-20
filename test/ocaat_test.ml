@@ -18,6 +18,10 @@ let () =
   assert_exit 0 [ "version"; "-q" ];
   assert_exit 0 [ "version"; "-vv" ];
   assert_exit 0 [ "version"; "--verbosity=debug" ];
+  Unix.putenv "NO_COLOR" "1";
+  assert_exit 0 [ "version" ];
+  assert_exit 0 [ "version"; "--color=always" ];
+  Unix.putenv "NO_COLOR" "";
   assert_exit 0 [ "tempest"; "migration-plan" ];
   assert_exit 1
     [
@@ -41,6 +45,12 @@ let () =
   assert_exit 1
     [ "pds"; "account"; "status"; "not-a-did"; "--pds"; "https://pds.example" ];
   assert_exit 1 [ "pds"; "account"; "status"; "did:plc:abc" ];
+  assert_exit 1 [ "relay"; "account"; "status"; "not-a-did" ];
+  assert_exit 0
+    [ "key"; "inspect"; "z42tvqQS5sVhaV1jLZ5P6ZKEPEbSpYavNVmT88YDYV3MEZ8D" ];
+  assert_exit 0
+    [ "key"; "inspect"; "z3vLWgA9nXoPzxsJJafDY9BPrZd3EDWjvcCtYfrFxZ7xbMVi" ];
+  assert_exit 1 [ "key"; "inspect"; "not-a-key" ];
   assert_exit 0 [ "syntax"; "handle"; "check"; "tempest.desertthunder.dev" ];
   assert_exit 1 [ "syntax"; "handle"; "check"; "tempest" ];
   assert_exit 1 [ "syntax"; "handle"; "check"; "cn.8" ];

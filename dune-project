@@ -19,4 +19,5 @@
   lwt_ssl
   lwt_ppx
   yojson
+  zarith
   uri))

@@ -1,6 +1,7 @@
 open Cmdliner.Term.Syntax
 
 type verbosity = Quiet | Error | Warning | Info | Debug
+type color = Auto | Always | Never
 type t = { json : bool; pds : string option; auth : string option }
 
 let level_of_verbosity = function
@@ -19,6 +20,31 @@ let setup_log ~style_renderer ~level =
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level level;
   Logs.set_reporter (Logs_fmt.reporter ())
+
+let no_color_default () =
+  match Sys.getenv_opt "NO_COLOR" with
+  | Some value when value <> "" -> Some `None
+  | _ -> None
+
+let style_renderer_arg =
+  let open Cmdliner in
+  let color =
+    Arg.enum [ ("auto", Auto); ("always", Always); ("never", Never) ]
+  in
+  let doc =
+    "Control ANSI color output. $(b,NO_COLOR) disables default color when set \
+     to a non-empty value; an explicit $(b,--color) value overrides it."
+  in
+  let renderer = function
+    | None -> no_color_default ()
+    | Some Auto -> None
+    | Some Always -> Some `Ansi_tty
+    | Some Never -> Some `None
+  in
+  let+ mode =
+    Arg.(value & opt (some color) None & info [ "color" ] ~docv:"WHEN" ~doc)
+  in
+  renderer mode
 
 let verbosity_arg =
   let open Cmdliner in
@@ -64,7 +90,7 @@ let auth_arg =
   Arg.(value & opt (some string) None & info [ "auth" ] ~docv:"TOKEN" ~doc)
 
 let context =
-  let+ style_renderer = Fmt_cli.style_renderer ()
+  let+ style_renderer = style_renderer_arg
   and+ quiet = quiet_arg
   and+ verbose = verbose_arg
   and+ verbosity = verbosity_arg
@@ -86,7 +112,7 @@ let with_context term =
   run context
 
 let with_setup term =
-  let+ style_renderer = Fmt_cli.style_renderer ()
+  let+ style_renderer = style_renderer_arg
   and+ quiet = quiet_arg
   and+ verbose = verbose_arg
   and+ verbosity = verbosity_arg
