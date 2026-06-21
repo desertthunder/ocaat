@@ -14,20 +14,20 @@ let print_generated ~terse key =
        document)@.";
     Fmt.pr "\t%s@." key.public_did_key)
 
-let generate kind terse =
+let generate kind terse context =
   match Key.generate kind with
   | Error reason ->
-      Fmt.epr "key generation failed: %s@." reason;
-      1
+      Output.validation_error ~json:context.Cli_context.json
+        ("key generation failed: " ^ reason)
   | Ok key ->
       print_generated ~terse key;
       0
 
-let inspect value =
+let inspect value context =
   match Key.inspect value with
   | Error reason ->
-      Fmt.epr "invalid key: %s@." reason;
-      1
+      Output.validation_error ~json:context.Cli_context.json
+        ("invalid key: " ^ reason)
   | Ok key ->
       Fmt.pr "Type: %s@." (Key.kind_type key.kind);
       Fmt.pr "Encoding: %s@."
@@ -53,7 +53,7 @@ let inspect_cmd =
       & info [] ~docv:"KEY" ~doc:"Public or secret key to inspect.")
   in
   let term =
-    Cli_context.with_setup
+    Cli_context.with_context
       (let+ value = value in
        inspect value)
   in
@@ -88,7 +88,7 @@ let generate_cmd =
       & info [ "terse" ] ~doc:"Print only the secret key multibase value.")
   in
   let term =
-    Cli_context.with_setup
+    Cli_context.with_context
       (let+ key_type = key_type and+ terse = terse in
        generate key_type terse)
   in

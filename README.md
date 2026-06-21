@@ -73,11 +73,27 @@ ocaat
 --verbosity=quiet|error|warning|info|debug
 -q, --quiet
 --json
---pds <url>
---auth <token>
+--pds <url>              # or OCAAT_PDS
+--auth <token>           # or OCAAT_AUTH
+--admin-token <token>    # or --admin; also OCAAT_ADMIN_TOKEN
+--yes, -y
+--dry-run
+--force, -f
 ```
 
 Note: NO_COLOR=1 disables default color output[^nc]
+
+Stable command error exit codes:
+
+```text
+64  usage error
+65  validation error
+66  authentication/authorization error
+69  network error
+70  remote HTTP/XRPC error
+74  filesystem error
+130 interrupted stream
+```
 
 </details>
 
@@ -158,5 +174,93 @@ inside that directory.
 
 Activation and PLC update steps remain separate so they can be reviewed before
 the account is cut over.
+
+## Development
+
+Use read-only checks during local development to verify CLI behavior without
+mutating a PDS or public account.
+
+### Local Tempest PDS
+
+Assume Tempest is running at:
+
+```text
+http://localhost:4000
+```
+
+Check with:
+
+```sh
+ocaat pds describe http://localhost:4000
+ocaat pds health --pds http://localhost:4000
+ocaat pds stats --pds http://localhost:4000
+ocaat pds account list --pds http://localhost:4000 --json
+```
+
+Keep a few local seeded accounts with stable handles and DIDs for manual checks,
+for example:
+
+| Handle          | DID           | Notes                    |
+| --------------- | ------------- | ------------------------ |
+| alice.localhost | `did:plc:...` | normal records/blobs     |
+| bob.localhost   | `did:plc:...` | empty or minimal account |
+| admin.localhost | `did:plc:...` | admin-created account    |
+
+Useful local account checks:
+
+```sh
+ocaat pds account status --pds http://localhost:4000 did:plc:...
+ocaat repo describe --pds http://localhost:4000 did:plc:...
+ocaat repo latest-commit --pds http://localhost:4000 did:plc:...
+ocaat blob list --pds http://localhost:4000 did:plc:...
+ocaat record list --pds http://localhost:4000 did:plc:...
+```
+
+### Public read-only accounts
+
+Use these public accounts for Bluesky-hosted interoperability checks:
+
+| Handle              | Purpose                             |
+| ------------------- | ----------------------------------- |
+| `desertthunder.dev` | personal/public account check       |
+| `bsky.app`          | hosted service account sanity check |
+| `atproto.com`       | AT Protocol identity/PLC check      |
+
+Examples:
+
+```sh
+ocaat resolve desertthunder.dev
+ocaat resolve bsky.app
+ocaat resolve atproto.com
+ocaat plc history atproto.com
+ocaat plc data atproto.com
+ocaat record list bsky.app --collection app.bsky.actor.profile
+ocaat repo describe bsky.app --pds https://bsky.social
+ocaat blob list bsky.app --pds https://bsky.social
+```
+
+Public accounts are useful for manual development checks, but avoid strict CI
+snapshots against them because records and repo heads can change.
+
+### Local fixtures
+
+Prefer local fixtures for repeatable repo/blob checks:
+
+```sh
+ocaat repo verify test/fixtures/repos/alice.car
+ocaat repo list test/fixtures/repos/alice.car
+ocaat repo inspect test/fixtures/repos/alice.car
+ocaat repo mst test/fixtures/repos/alice.car
+ocaat blob compute test/fixtures/blobs/avatar.png
+```
+
+Useful fixtures to keep:
+
+- valid small repo CAR;
+- empty repo CAR;
+- malformed CAR;
+- repo with multiple collections;
+- repo with blob references;
+- random non-CAR file.
 
 [^nc]: https://no-color.org/

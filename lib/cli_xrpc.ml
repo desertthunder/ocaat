@@ -4,22 +4,16 @@ open Cmdliner.Term.Syntax
 (** Run [xrpc query] with the shared CLI context. *)
 let query method_ params context =
   match context.Cli_context.pds with
-  | None ->
-      Fmt.epr "xrpc query requires --pds <url>@.";
-      1
+  | None -> Output.usage_error ~json:context.Cli_context.json "xrpc query requires --pds <url>"
   | Some pds -> (
       match Xrpc.parse_params params with
-      | Error reason ->
-          Fmt.epr "%s@." reason;
-          1
+      | Error reason -> Output.validation_error ~json:context.json reason
       | Ok params -> (
           match
             Lwt_main.run
               (Xrpc.query ?auth:context.auth ~pds ~method_ ~params ())
           with
-          | Error reason ->
-              Fmt.epr "%s@." reason;
-              1
+          | Error reason -> Output.validation_error ~json:context.json reason
           | Ok response ->
               Output.print_http_response ~json:context.json response))
 

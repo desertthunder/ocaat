@@ -3,15 +3,15 @@ module At_syntax = Syntax
 open Cmdliner.Term.Syntax
 module Log = (val Logs.src_log (Logs.Src.create "ocaat.syntax") : Logs.LOG)
 
-let check kind value =
+let check kind value context =
   Log.debug (fun m -> m "checking %s syntax for %S" kind value);
   match At_syntax.validate kind value with
   | At_syntax.Valid ->
       Fmt.pr "valid %s: %s@." kind value;
       0
   | At_syntax.Invalid reason ->
-      Fmt.epr "invalid %s: %s (%s)@." kind value reason;
-      1
+      Output.validation_error ~json:context.Cli_context.json
+        (Printf.sprintf "invalid %s: %s (%s)" kind value reason)
 
 let check_cmd kind =
   let value =
@@ -19,7 +19,7 @@ let check_cmd kind =
     Arg.(required & pos 0 (some string) None & info [] ~docv:"VALUE" ~doc)
   in
   let term =
-    Cli_context.with_setup
+    Cli_context.with_context
       (let+ value = value in
        check kind value)
   in

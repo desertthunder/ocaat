@@ -2,7 +2,16 @@ open Cmdliner.Term.Syntax
 
 type verbosity = Quiet | Error | Warning | Info | Debug
 type color = Auto | Always | Never
-type t = { json : bool; pds : string option; auth : string option }
+
+type t = {
+  json : bool;
+  pds : string option;
+  auth : string option;
+  admin_token : string option;
+  yes : bool;
+  dry_run : bool;
+  force : bool;
+}
 
 let level_of_verbosity = function
   | Quiet -> None
@@ -25,6 +34,8 @@ let no_color_default () =
   match Sys.getenv_opt "NO_COLOR" with
   | Some value when value <> "" -> Some `None
   | _ -> None
+
+let env name doc = Cmdliner.Cmd.Env.info name ~doc
 
 let style_renderer_arg =
   let open Cmdliner in
@@ -82,12 +93,56 @@ let json_arg =
 let pds_arg =
   let open Cmdliner in
   let doc = "Use $(docv) as the default PDS service URL." in
-  Arg.(value & opt (some string) None & info [ "pds" ] ~docv:"URL" ~doc)
+  Arg.(
+    value
+    & opt (some string) None
+    & info [ "pds" ] ~docv:"URL" ~doc
+        ~env:(env "OCAAT_PDS" "Default PDS service URL."))
 
 let auth_arg =
   let open Cmdliner in
   let doc = "Use $(docv) as a bearer token for authenticated requests." in
-  Arg.(value & opt (some string) None & info [ "auth" ] ~docv:"TOKEN" ~doc)
+  Arg.(
+    value
+    & opt (some string) None
+    & info [ "auth" ] ~docv:"TOKEN" ~doc
+        ~env:(env "OCAAT_AUTH" "Default bearer token."))
+
+let admin_token_arg =
+  let open Cmdliner in
+  let doc = "Use $(docv) as a bearer token for PDS admin requests." in
+  Arg.(
+    value
+    & opt (some string) None
+    & info [ "admin-token"; "admin" ] ~docv:"TOKEN" ~doc
+        ~env:(env "OCAAT_ADMIN_TOKEN" "Default admin bearer token."))
+
+let yes_arg =
+  let open Cmdliner in
+  let doc = "Confirm destructive operations without prompting." in
+  Arg.(value & flag & info [ "yes"; "y" ] ~doc)
+
+let dry_run_arg =
+  let open Cmdliner in
+  let doc = "Validate and describe an operation without making changes." in
+  Arg.(value & flag & info [ "dry-run" ] ~doc)
+
+let force_arg =
+  let open Cmdliner in
+  let doc = "Overwrite existing artifacts or bypass safety checks when supported." in
+  Arg.(value & flag & info [ "force"; "f" ] ~doc)
+
+let setup_and_make_context style_renderer quiet verbose verbosity json pds auth
+    admin_token yes dry_run force =
+  let verbosity =
+    if quiet then Quiet
+    else
+      match verbosity with
+      | Some verbosity -> verbosity
+      | None -> inferred_verbosity (List.length verbose)
+  in
+  setup_log ~style_renderer ~level:(level_of_verbosity verbosity);
+  { json; pds; auth; admin_token; yes; dry_run; force }
 
 let context =
   let+ style_renderer = style_renderer_arg
@@ -96,36 +151,18 @@ let context =
   and+ verbosity = verbosity_arg
   and+ json = json_arg
   and+ pds = pds_arg
-  and+ auth = auth_arg in
-  let verbosity =
-    if quiet then Quiet
-    else
-      match verbosity with
-      | Some verbosity -> verbosity
-      | None -> inferred_verbosity (List.length verbose)
-  in
-  setup_log ~style_renderer ~level:(level_of_verbosity verbosity);
-  { json; pds; auth }
+  and+ auth = auth_arg
+  and+ admin_token = admin_token_arg
+  and+ yes = yes_arg
+  and+ dry_run = dry_run_arg
+  and+ force = force_arg in
+  setup_and_make_context style_renderer quiet verbose verbosity json pds auth
+    admin_token yes dry_run force
 
 let with_context term =
   let+ context = context and+ run = term in
   run context
 
 let with_setup term =
-  let+ style_renderer = style_renderer_arg
-  and+ quiet = quiet_arg
-  and+ verbose = verbose_arg
-  and+ verbosity = verbosity_arg
-  and+ _json = json_arg
-  and+ _pds = pds_arg
-  and+ _auth = auth_arg
-  and+ result = term in
-  let verbosity =
-    if quiet then Quiet
-    else
-      match verbosity with
-      | Some verbosity -> verbosity
-      | None -> inferred_verbosity (List.length verbose)
-  in
-  setup_log ~style_renderer ~level:(level_of_verbosity verbosity);
+  let+ _context = context and+ result = term in
   result

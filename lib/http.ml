@@ -51,36 +51,49 @@ let xrpc_url ~base_url ~method_ ~params =
 
     Response bodies are left uninterpreted so callers can handle JSON and
     non-JSON errors. *)
+let network_error exn = { status = 0; body = Printexc.to_string exn }
+let bytes_network_error exn =
+  { status = 0; headers = Cohttp.Header.init (); body = Printexc.to_string exn }
+
 let get_text ?auth url =
   let open Lwt.Syntax in
-  let uri = Uri.of_string url in
-  let headers = auth_headers auth in
-  let* response, body = Cohttp_lwt_unix.Client.get ~headers uri in
-  let status = Cohttp.Response.status response |> Cohttp.Code.code_of_status in
-  let+ body = Cohttp_lwt.Body.to_string body in
-  { status; body }
+  Lwt.catch
+    (fun () ->
+      let uri = Uri.of_string url in
+      let headers = auth_headers auth in
+      let* response, body = Cohttp_lwt_unix.Client.get ~headers uri in
+      let status = Cohttp.Response.status response |> Cohttp.Code.code_of_status in
+      let+ body = Cohttp_lwt.Body.to_string body in
+      { status; body })
+    (fun exn -> Lwt.return (network_error exn))
 
 (** GET a URL and keep response headers with the body. *)
 let get_bytes ?auth url =
   let open Lwt.Syntax in
-  let uri = Uri.of_string url in
-  let headers = auth_headers auth in
-  let* response, body = Cohttp_lwt_unix.Client.get ~headers uri in
-  let status = Cohttp.Response.status response |> Cohttp.Code.code_of_status in
-  let headers = Cohttp.Response.headers response in
-  let+ body = Cohttp_lwt.Body.to_string body in
-  { status; headers; body }
+  Lwt.catch
+    (fun () ->
+      let uri = Uri.of_string url in
+      let headers = auth_headers auth in
+      let* response, body = Cohttp_lwt_unix.Client.get ~headers uri in
+      let status = Cohttp.Response.status response |> Cohttp.Code.code_of_status in
+      let headers = Cohttp.Response.headers response in
+      let+ body = Cohttp_lwt.Body.to_string body in
+      { status; headers; body })
+    (fun exn -> Lwt.return (bytes_network_error exn))
 
 (** POST a text body and return the response as text. *)
 let post_text ?auth ?content_type ~body url =
   let open Lwt.Syntax in
-  let uri = Uri.of_string url in
-  let headers = auth_headers auth |> Fun.flip add_content_type content_type in
-  let body = Cohttp_lwt.Body.of_string body in
-  let* response, body = Cohttp_lwt_unix.Client.post ~headers ~body uri in
-  let status = Cohttp.Response.status response |> Cohttp.Code.code_of_status in
-  let+ body = Cohttp_lwt.Body.to_string body in
-  { status; body }
+  Lwt.catch
+    (fun () ->
+      let uri = Uri.of_string url in
+      let headers = auth_headers auth |> Fun.flip add_content_type content_type in
+      let body = Cohttp_lwt.Body.of_string body in
+      let* response, body = Cohttp_lwt_unix.Client.post ~headers ~body uri in
+      let status = Cohttp.Response.status response |> Cohttp.Code.code_of_status in
+      let+ body = Cohttp_lwt.Body.to_string body in
+      { status; body })
+    (fun exn -> Lwt.return (network_error exn))
 
 (** POST a JSON object body. *)
 let post_json ?auth ~json url =

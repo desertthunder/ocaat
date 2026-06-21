@@ -61,14 +61,10 @@ let account_list handles host context =
 (** Run [pds account status] with the shared CLI context. *)
 let account_status did context =
   match context.Cli_context.pds with
-  | None ->
-      Fmt.epr "pds account status requires --pds <url>@.";
-      1
+  | None -> Output.usage_error ~json:context.Cli_context.json "pds account status requires --pds <url>"
   | Some pds -> (
       match Lwt_main.run (Pds.repo_status ?auth:context.auth ~pds ~did ()) with
-      | Error reason ->
-          Fmt.epr "%s@." reason;
-          1
+      | Error reason -> Output.validation_error ~json:context.json reason
       | Ok response -> (
           if context.json then Output.print_http_response ~json:true response
           else if response.status < 200 || response.status >= 300 then
@@ -79,8 +75,8 @@ let account_status did context =
                 print_repo repo;
                 0
             | exception Yojson.Json_error reason ->
-                Fmt.epr "getRepoStatus returned invalid JSON: %s@." reason;
-                1))
+                Output.remote_error ~json:context.json
+                  ("getRepoStatus returned invalid JSON: " ^ reason)))
 
 (** Cmdliner command for [pds account list]. *)
 let account_list_cmd =
