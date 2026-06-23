@@ -1,12 +1,42 @@
 let usage = 64
 let validation = 65
 
+let assert_equal expected actual =
+  if actual <> expected then
+    failwith (Printf.sprintf "expected %S, got %S" expected actual)
+
 let assert_exit expected args =
   let actual = Ocaat.main ~argv:(Array.of_list ("ocaat" :: args)) () in
   if actual <> expected then
     failwith (Printf.sprintf "expected exit %d, got %d" expected actual)
 
 let () =
+  let redacted =
+    Ocaat__Output.redact_json
+      (`Assoc
+        [
+          ("accessJwt", `String "access-secret");
+          ("refreshJwt", `String "refresh-secret");
+          ("password", `String "password-secret");
+          ("serviceAuth", `String "service-secret");
+          ("adminToken", `String "admin-secret");
+          ("ok", `String "visible");
+        ])
+  in
+  assert_equal
+    {|{"accessJwt":"[REDACTED]","refreshJwt":"[REDACTED]","password":"[REDACTED]","serviceAuth":"[REDACTED]","adminToken":"[REDACTED]","ok":"visible"}|}
+    (Yojson.Safe.to_string redacted);
+  let artifact_path =
+    "/tmp/ocaat-artifact-helper-test-" ^ string_of_int (Unix.getpid ())
+  in
+  assert (Ocaat__Output.Artifact.write_file artifact_path "one" = Ok ());
+  assert (Result.is_error (Ocaat__Output.Artifact.write_file artifact_path "two"));
+  assert (Ocaat__Output.Artifact.write_file ~force:true artifact_path "two" = Ok ());
+  assert_equal "two"
+    (let channel = open_in_bin artifact_path in
+     Fun.protect
+       ~finally:(fun () -> close_in_noerr channel)
+       (fun () -> really_input_string channel (in_channel_length channel)));
   assert_exit 0 [ "version" ];
   assert_exit 0
     [

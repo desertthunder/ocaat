@@ -40,13 +40,13 @@ Tasks for implementing the Tempest-first `ocaat` CLI described in `SPEC.md`.
       remote XRPC, filesystem, and interrupted-stream failures.
 - [x] Standardize human error rendering across commands.
 - [x] Standardize JSON error rendering across commands.
-- [ ] Ensure every command redacts access JWTs, refresh JWTs, passwords, app
+- [x] Ensure every command redacts access JWTs, refresh JWTs, passwords, app
       passwords, service auth tokens, and admin tokens in logs/errors/output.
-- [ ] Add a command preflight helper for required PDS URL, auth, admin auth,
+- [x] Add a command preflight helper for required PDS URL, auth, admin auth,
       DID/handle, input file, output path, and artifact state.
-- [ ] Add shared confirmation prompts for destructive operations.
-- [ ] Add artifact overwrite/resume helpers that honor `--force`.
-- [ ] Add a shared progress reporting interface for human and JSON modes.
+- [x] Add shared confirmation prompts for destructive operations.
+- [x] Add artifact overwrite/resume helpers that honor `--force`.
+- [x] Add a shared progress reporting interface for human and JSON modes.
 
 ## Phase 1: XRPC client
 

@@ -211,16 +211,7 @@ let read_file path =
     |> Result.ok
   with Sys_error reason -> Error reason
 
-let write_file path body =
-  try
-    let dir = Filename.dirname path in
-    if dir <> "." && not (Sys.file_exists dir) then Unix.mkdir dir 0o755;
-    let channel = open_out_bin path in
-    Fun.protect
-      ~finally:(fun () -> close_out_noerr channel)
-      (fun () -> output_string channel body);
-    Ok ()
-  with Sys_error reason -> Error reason
+let write_file ~force path body = Output.Artifact.write_file ~force path body
 
 let read_json path =
   match read_file path with
@@ -233,8 +224,38 @@ let read_json path =
       | exception Yojson.Json_error reason ->
           Error ("invalid JSON artifact " ^ path ^ ": " ^ reason))
 
-let write_json path json =
-  write_file path (Yojson.Safe.pretty_to_string json ^ "\n")
+let write_json ~force path json =
+  write_file ~force path (Yojson.Safe.pretty_to_string json ^ "\n")
+
+let existing_json_artifact path =
+  Result.map
+    (fun json ->
+      match json with
+      | `Assoc fields ->
+          `Assoc (("_ocaat_reused_artifact", `String path) :: fields)
+      | json ->
+          `Assoc
+            [ ("_ocaat_reused_artifact", `String path); ("value", json) ])
+    (read_json path)
+
+let existing_file_artifact path =
+  match read_file path with
+  | Error reason -> Error reason
+  | Ok body ->
+      Ok
+        (`Assoc
+          [
+            ("_ocaat_reused_artifact", `String path);
+            ("bytes", `Int (String.length body));
+          ])
+
+let if_existing_json_unless_force ~force path f =
+  if Sys.file_exists path && not force then Lwt.return (existing_json_artifact path)
+  else f ()
+
+let if_existing_file_unless_force ~force path f =
+  if Sys.file_exists path && not force then Lwt.return (existing_file_artifact path)
+  else f ()
 
 let json_field name = function
   | `Assoc fields -> List.assoc_opt name fields
@@ -297,7 +318,9 @@ let json_response (response : Http.response) =
   | exception Yojson.Json_error _ ->
       Error (Printf.sprintf "HTTP %d returned non-JSON body" response.status)
 
-let log_json label json = Fmt.pr "%s: %s@." label (Yojson.Safe.to_string json)
+let log_json label json =
+  Fmt.pr "%s: %s@." label
+    (Yojson.Safe.to_string (Output.redact_json json))
 
 let get_json ?auth url =
   let open Lwt.Syntax in
@@ -310,7 +333,8 @@ let post_json ?auth ~json url =
   json_response response
 
 (** Create a source PDS session and write [old_session.json]. *)
-let login_source settings =
+let login_source ~force settings =
+  if_existing_json_unless_force ~force settings.old_session_path @@ fun () ->
   match require "OLD_PASSWORD" settings.old_password with
   | Error reason -> Lwt.return (Error reason)
   | Ok password -> (
@@ -340,11 +364,12 @@ let login_source settings =
           in
           Result.map
             (fun () -> json)
-            (write_json settings.old_session_path json)
+            (write_json ~force settings.old_session_path json)
       | Ok _ -> Error "createSession returned non-object JSON")
 
 (** Request service auth for creating the account on Tempest. *)
-let get_service_auth settings =
+let get_service_auth ~force settings =
+  if_existing_json_unless_force ~force settings.service_auth_path @@ fun () ->
   match old_access settings with
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
@@ -361,7 +386,7 @@ let get_service_auth settings =
       Result.bind result (fun json ->
           Result.map
             (fun () -> json)
-            (write_json settings.service_auth_path json))
+            (write_json ~force settings.service_auth_path json))
 
 (** Check whether the source session is accepted by the source PDS. *)
 let source_session_status settings =
@@ -374,7 +399,8 @@ let source_session_status settings =
       get_json ~auth url
 
 (** Export the source repository CAR to disk. *)
-let export_car settings =
+let export_car ~force settings =
+  if_existing_file_unless_force ~force settings.car_path @@ fun () ->
   match Syntax.validate_did settings.did with
   | Invalid reason -> Lwt.return (Error ("invalid DID: " ^ reason))
   | Valid ->
@@ -389,10 +415,11 @@ let export_car settings =
       else
         Result.map
           (fun () -> `Assoc [ ("bytes", `Int (String.length response.body)) ])
-          (write_file settings.car_path response.body)
+          (write_file ~force settings.car_path response.body)
 
 (** List source blob CIDs and write [source_blobs.json]. *)
-let list_source_blobs settings =
+let list_source_blobs ~force settings =
+  if_existing_json_unless_force ~force settings.source_blobs_path @@ fun () ->
   let url =
     xrpc_url ~base_url:settings.old_pds Sync_list_blobs
       ~params:[ ("did", settings.did) ]
@@ -400,22 +427,40 @@ let list_source_blobs settings =
   let open Lwt.Syntax in
   let+ result = get_json url in
   Result.bind result (fun json ->
-      Result.map (fun () -> json) (write_json settings.source_blobs_path json))
+      Result.map (fun () -> json) (write_json ~force settings.source_blobs_path json))
 
 let blob_path settings cid =
   Filename.concat settings.artifact_dir ("tempestpds.blob." ^ cid)
 
 (** Download source blobs listed in [source_blobs.json]. *)
-let download_source_blobs settings =
+let download_source_blobs ~force ?progress settings =
   match read_json settings.source_blobs_path with
   | Error reason -> Lwt.return (Error reason)
   | Ok json -> (
       match json_field "cids" json with
       | Some (`List cids) ->
           let open Lwt.Syntax in
-          let rec loop count = function
-            | [] -> Lwt.return (Ok (`Assoc [ ("downloaded", `Int count) ]))
+          let total = List.length cids in
+          let rec loop downloaded skipped index = function
+            | [] ->
+                Lwt.return
+                  (Ok
+                     (`Assoc
+                       [
+                         ("downloaded", `Int downloaded);
+                         ("skipped", `Int skipped);
+                       ]))
             | `String cid :: rest -> (
+                let path = blob_path settings cid in
+                Option.iter
+                  (fun progress ->
+                    Output.Progress.event progress ~current:index ~total
+                      "download-source-blobs"
+                      [ ("cid", `String cid) ])
+                  progress;
+                if Sys.file_exists path && not force then
+                  loop downloaded (skipped + 1) (index + 1) rest
+                else
                 let url =
                   xrpc_url ~base_url:settings.old_pds Sync_get_blob
                     ~params:[ ("did", settings.did); ("cid", cid) ]
@@ -427,19 +472,20 @@ let download_source_blobs settings =
                        (Printf.sprintf "HTTP %d downloading blob %s"
                           response.status cid))
                 else
-                  match write_file (blob_path settings cid) response.body with
+                  match write_file ~force path response.body with
                   | Error reason -> Lwt.return (Error reason)
-                  | Ok () -> loop (count + 1) rest)
+                  | Ok () -> loop (downloaded + 1) skipped (index + 1) rest)
             | _ :: _ ->
                 Lwt.return (Error "source blob list contains a non-string CID")
           in
-          loop 0 cids
+          loop 0 0 1 cids
       | _ ->
           Lwt.return
             (Error (settings.source_blobs_path ^ " does not contain cids")))
 
 (** Create the inactive account on Tempest using prior service auth. *)
-let create_account settings =
+let create_account ~force settings =
+  if_existing_json_unless_force ~force settings.create_account_path @@ fun () ->
   match
     ( require "EMAIL" settings.email,
       require "TEMPEST_PASSWORD" settings.tempest_password,
@@ -466,10 +512,11 @@ let create_account settings =
       Result.bind result (fun json ->
           Result.map
             (fun () -> json)
-            (write_json settings.create_account_path json))
+            (write_json ~force settings.create_account_path json))
 
 (** Refresh the Tempest session artifact. *)
-let refresh_session settings =
+let refresh_session ~force settings =
+  if_existing_json_unless_force ~force settings.create_account_path @@ fun () ->
   match tempest_refresh settings with
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
@@ -481,10 +528,11 @@ let refresh_session settings =
       Result.bind result (fun json ->
           Result.map
             (fun () -> json)
-            (write_json settings.create_account_path json))
+            (write_json ~force settings.create_account_path json))
 
 (** Import the exported CAR into Tempest. *)
-let import_repo settings =
+let import_repo ~force settings =
+  if_existing_json_unless_force ~force settings.import_repo_path @@ fun () ->
   match (tempest_access settings, read_file settings.car_path) with
   | Error reason, _ | _, Error reason -> Lwt.return (Error reason)
   | Ok auth, Ok body ->
@@ -498,10 +546,11 @@ let import_repo settings =
       Result.bind (json_response response) (fun json ->
           Result.map
             (fun () -> json)
-            (write_json settings.import_repo_path json))
+            (write_json ~force settings.import_repo_path json))
 
 (** Check authenticated Tempest migration/account status. *)
-let check_status settings =
+let check_status ~force settings =
+  if_existing_json_unless_force ~force settings.status_path @@ fun () ->
   match tempest_access settings with
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
@@ -512,10 +561,11 @@ let check_status settings =
       let open Lwt.Syntax in
       let+ result = get_json ~auth url in
       Result.bind result (fun json ->
-          Result.map (fun () -> json) (write_json settings.status_path json))
+          Result.map (fun () -> json) (write_json ~force settings.status_path json))
 
 (** List blobs Tempest still needs after repo import. *)
-let list_missing_blobs settings =
+let list_missing_blobs ~force settings =
+  if_existing_json_unless_force ~force settings.missing_blobs_path @@ fun () ->
   match tempest_access settings with
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
@@ -527,7 +577,7 @@ let list_missing_blobs settings =
       Result.bind result (fun json ->
           Result.map
             (fun () -> json)
-            (write_json settings.missing_blobs_path json))
+            (write_json ~force settings.missing_blobs_path json))
 
 let mime_type path =
   if Filename.check_suffix path ".png" then "image/png"
@@ -538,19 +588,26 @@ let mime_type path =
   else "application/octet-stream"
 
 (** Upload each missing blob from local artifacts to Tempest. *)
-let upload_missing_blobs settings =
+let upload_missing_blobs ?progress settings =
   match (tempest_access settings, read_json settings.missing_blobs_path) with
   | Error reason, _ | _, Error reason -> Lwt.return (Error reason)
   | Ok auth, Ok json -> (
       match json_field "blobs" json with
       | Some (`List blobs) ->
           let open Lwt.Syntax in
-          let rec loop count = function
+          let total = List.length blobs in
+          let rec loop count index = function
             | [] -> Lwt.return (Ok (`Assoc [ ("uploaded", `Int count) ]))
             | (`Assoc _ as blob) :: rest -> (
                 match string_field "cid" blob with
                 | None -> Lwt.return (Error "missing blob entry without cid")
                 | Some cid -> (
+                    Option.iter
+                      (fun progress ->
+                        Output.Progress.event progress ~current:index ~total
+                          "upload-missing-blobs"
+                          [ ("cid", `String cid) ])
+                      progress;
                     let path = blob_path settings cid in
                     match read_file path with
                     | Error reason -> Lwt.return (Error reason)
@@ -568,18 +625,19 @@ let upload_missing_blobs settings =
                             (Error
                                (Printf.sprintf "HTTP %d uploading blob %s"
                                   response.status cid))
-                        else loop (count + 1) rest))
+                        else loop (count + 1) (index + 1) rest))
             | _ :: _ ->
                 Lwt.return
                   (Error "missing blob list contains a non-object entry")
           in
-          loop 0 blobs
+          loop 0 1 blobs
       | _ ->
           Lwt.return
             (Error (settings.missing_blobs_path ^ " does not contain blobs")))
 
 (** Fetch recommended PLC credentials from Tempest. *)
-let plc_recommended settings =
+let plc_recommended ~force settings =
+  if_existing_json_unless_force ~force settings.plc_recommended_path @@ fun () ->
   match tempest_access settings with
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
@@ -592,10 +650,11 @@ let plc_recommended settings =
       Result.bind result (fun json ->
           Result.map
             (fun () -> json)
-            (write_json settings.plc_recommended_path json))
+            (write_json ~force settings.plc_recommended_path json))
 
 (** Request a PLC operation token/signature from the old PDS. *)
-let plc_request_token settings =
+let plc_request_token ~force settings =
+  if_existing_json_unless_force ~force settings.plc_token_path @@ fun () ->
   match old_access settings with
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
@@ -620,10 +679,11 @@ let plc_request_token settings =
         else json_response response
       in
       Result.bind result (fun json ->
-          Result.map (fun () -> json) (write_json settings.plc_token_path json))
+          Result.map (fun () -> json) (write_json ~force settings.plc_token_path json))
 
 (** Ask the old PDS to sign the recommended PLC operation. *)
-let plc_sign settings =
+let plc_sign ~force settings =
+  if_existing_json_unless_force ~force settings.plc_signed_path @@ fun () ->
   match
     ( old_access settings,
       read_json settings.plc_recommended_path,
@@ -649,10 +709,11 @@ let plc_sign settings =
       let open Lwt.Syntax in
       let+ result = post_json ~auth ~json url in
       Result.bind result (fun json ->
-          Result.map (fun () -> json) (write_json settings.plc_signed_path json))
+          Result.map (fun () -> json) (write_json ~force settings.plc_signed_path json))
 
 (** Submit the signed PLC operation through Tempest. *)
-let plc_submit settings =
+let plc_submit ~force settings =
+  if_existing_json_unless_force ~force settings.plc_submit_path @@ fun () ->
   match (tempest_access settings, read_json settings.plc_signed_path) with
   | Error reason, _ | _, Error reason -> Lwt.return (Error reason)
   | Ok auth, Ok signed -> (
@@ -671,10 +732,11 @@ let plc_submit settings =
           Result.bind result (fun json ->
               Result.map
                 (fun () -> json)
-                (write_json settings.plc_submit_path json)))
+                (write_json ~force settings.plc_submit_path json)))
 
 (** Activate the migrated Tempest account. *)
-let activate settings =
+let activate ~force settings =
+  if_existing_json_unless_force ~force settings.activate_path @@ fun () ->
   match tempest_access settings with
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
@@ -684,7 +746,7 @@ let activate settings =
       let open Lwt.Syntax in
       let+ result = post_json ~auth ~json:(`Assoc []) url in
       Result.bind result (fun json ->
-          Result.map (fun () -> json) (write_json settings.activate_path json))
+          Result.map (fun () -> json) (write_json ~force settings.activate_path json))
 
 let bind_lwt result f =
   let open Lwt.Syntax in
@@ -692,36 +754,36 @@ let bind_lwt result f =
   match result with Error _ as error -> Lwt.return error | Ok _ -> f ()
 
 (** Run the non-activation migration sequence. *)
-let full settings =
-  bind_lwt (login_source settings) (fun () ->
-      bind_lwt (get_service_auth settings) (fun () ->
-          bind_lwt (export_car settings) (fun () ->
-              bind_lwt (list_source_blobs settings) (fun () ->
-                  bind_lwt (download_source_blobs settings) (fun () ->
-                      bind_lwt (create_account settings) (fun () ->
-                          bind_lwt (import_repo settings) (fun () ->
-                              bind_lwt (check_status settings) (fun () ->
-                                  list_missing_blobs settings))))))))
+let full ~force ?progress settings =
+  bind_lwt (login_source ~force settings) (fun () ->
+      bind_lwt (get_service_auth ~force settings) (fun () ->
+          bind_lwt (export_car ~force settings) (fun () ->
+              bind_lwt (list_source_blobs ~force settings) (fun () ->
+                  bind_lwt (download_source_blobs ~force ?progress settings) (fun () ->
+                      bind_lwt (create_account ~force settings) (fun () ->
+                          bind_lwt (import_repo ~force settings) (fun () ->
+                              bind_lwt (check_status ~force settings) (fun () ->
+                                  list_missing_blobs ~force settings))))))))
 
 (** Run one migration step. *)
-let run step settings =
+let run ?(force = false) ?progress step settings =
   ensure_artifact_dir settings;
   match step with
-  | Login_source -> login_source settings
-  | Service_auth -> get_service_auth settings
+  | Login_source -> login_source ~force settings
+  | Service_auth -> get_service_auth ~force settings
   | Source_session_status -> source_session_status settings
-  | Export_car -> export_car settings
-  | List_source_blobs -> list_source_blobs settings
-  | Download_source_blobs -> download_source_blobs settings
-  | Create_account -> create_account settings
-  | Refresh_session -> refresh_session settings
-  | Import_repo -> import_repo settings
-  | Status -> check_status settings
-  | Missing_blobs -> list_missing_blobs settings
-  | Upload_missing_blobs -> upload_missing_blobs settings
-  | Plc_recommended -> plc_recommended settings
-  | Plc_request_token -> plc_request_token settings
-  | Plc_sign -> plc_sign settings
-  | Plc_submit -> plc_submit settings
-  | Activate -> activate settings
-  | Full -> full settings
+  | Export_car -> export_car ~force settings
+  | List_source_blobs -> list_source_blobs ~force settings
+  | Download_source_blobs -> download_source_blobs ~force ?progress settings
+  | Create_account -> create_account ~force settings
+  | Refresh_session -> refresh_session ~force settings
+  | Import_repo -> import_repo ~force settings
+  | Status -> check_status ~force settings
+  | Missing_blobs -> list_missing_blobs ~force settings
+  | Upload_missing_blobs -> upload_missing_blobs ?progress settings
+  | Plc_recommended -> plc_recommended ~force settings
+  | Plc_request_token -> plc_request_token ~force settings
+  | Plc_sign -> plc_sign ~force settings
+  | Plc_submit -> plc_submit ~force settings
+  | Activate -> activate ~force settings
+  | Full -> full ~force ?progress settings

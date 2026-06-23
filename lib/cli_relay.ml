@@ -8,7 +8,7 @@ let relay_arg =
     & opt string "https://bsky.network"
     & info [ "relay-host" ] ~docv:"URL" ~doc)
 
-let print_json_line json = Fmt.pr "%s@." (Yojson.Safe.to_string json)
+let print_json_line json = Output.print_json_value json
 
 let print_accounts ~json accounts =
   List.iter

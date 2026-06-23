@@ -5,7 +5,11 @@ let run_migrate step artifact_dir context =
   match Migration.settings ?artifact_dir () with
   | Error reason -> Output.validation_error ~json:context.Cli_context.json reason
   | Ok settings -> (
-      match Lwt_main.run (Migration.run step settings) with
+      let progress = Output.Progress.make ~json:context.json in
+      match
+        Lwt_main.run
+          (Migration.run ~force:context.force ~progress step settings)
+      with
       | Error reason -> Output.remote_error ~json:context.json reason
       | Ok json ->
           Migration.log_json (Migration.step_name step) json;

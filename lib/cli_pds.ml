@@ -41,7 +41,7 @@ let account_list handles host context =
   | Error response -> Output.print_http_response ~json:context.json response
   | Ok repos ->
       if context.json then (
-        List.iter (fun repo -> Fmt.pr "%s@." (Yojson.Safe.to_string repo)) repos;
+        List.iter Output.print_json_value repos;
         0)
       else if handles then (
         List.iter
