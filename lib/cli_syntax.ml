@@ -68,4 +68,7 @@ let cmd =
       kind_cmd "cid" [ check_cmd "cid" ];
       kind_cmd "tid" [ check_cmd "tid"; tid_generate_cmd ];
       kind_cmd "datetime" [ datetime_now_cmd; check_cmd "datetime" ];
+      kind_cmd "language" [ check_cmd "language" ];
+      kind_cmd "url" [ check_cmd "url" ];
+      kind_cmd "artifact-path" [ check_cmd "artifact-path" ];
     ]

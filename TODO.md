@@ -71,7 +71,7 @@ Tasks for implementing the Tempest-first `ocaat` CLI described in `SPEC.md`.
 - [ ] Add artifact path validation for input and output files/directories.
 - [ ] Ensure validators are available as reusable library functions rather than
       only CLI commands.
-- [ ] Add missing CLI syntax checks from `SPEC.md`. *
+- [x] Add missing CLI syntax checks from `SPEC.md`. *
 - [ ] Add unit tests for valid and invalid examples for each validator.
 
 ## Phase 3: migration hardening

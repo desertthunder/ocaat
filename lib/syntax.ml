@@ -507,6 +507,96 @@ let datetime_now () =
   Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02dZ" (tm.tm_year + 1900)
     (tm.tm_mon + 1) tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
 
+let validate_service_url value =
+  if String.length value = 0 then Invalid "URL is empty"
+  else
+    let uri = Uri.of_string value in
+    match Uri.scheme uri with
+    | Some ("http" | "https") -> (
+        match Uri.host uri with
+        | None | Some "" -> Invalid "URL must include a host"
+        | Some _ -> (
+            match Uri.userinfo uri with
+            | Some _ -> Invalid "URL must not include credentials"
+            | None -> (
+                match Uri.verbatim_query uri with
+                | Some _ -> Invalid "URL must not include a query string"
+                | None -> (
+                    match Uri.fragment uri with
+                    | Some _ -> Invalid "URL must not include a fragment"
+                    | None ->
+                        let path = Uri.path uri in
+                        if path = "" || path = "/" then Valid
+                        else Invalid "URL path must be empty or /"))))
+    | Some _ -> Invalid "URL scheme must be http or https"
+    | None -> Invalid "URL must include a scheme"
+
+let validate_artifact_path value =
+  let len = String.length value in
+  if len = 0 then Invalid "artifact path is empty"
+  else
+    let rec loop index =
+      if index = len then Valid
+      else if value.[index] = '\000' then
+        Invalid "artifact path cannot contain NUL"
+      else loop (index + 1)
+    in
+    loop 0
+
+let is_language_alpha value start stop =
+  let rec loop index =
+    if index = stop then true
+    else if is_alpha value.[index] then loop (index + 1)
+    else false
+  in
+  loop start
+
+let validate_language_subtag value =
+  let len = String.length value in
+  if len = 0 then Invalid "language tag contains an empty subtag"
+  else if len > 8 then Invalid "language subtag is longer than 8 characters"
+  else
+    let rec loop index =
+      if index = len then Valid
+      else if is_alnum value.[index] then loop (index + 1)
+      else Invalid "language subtag contains an invalid character"
+    in
+    loop 0
+
+let validate_language value =
+  let len = String.length value in
+  if len = 0 then Invalid "language tag is empty"
+  else if len > 128 then Invalid "language tag is longer than 128 characters"
+  else
+    match split_on_char '-' value with
+    | [] -> Invalid "language tag is empty"
+    | [ "x" ] | [ "X" ] ->
+        Invalid "private-use language tag is missing a subtag"
+    | ("x" | "X") :: subtags ->
+        let rec loop = function
+          | [] -> Valid
+          | subtag :: rest -> (
+              match validate_language_subtag subtag with
+              | Valid -> loop rest
+              | Invalid reason -> Invalid reason)
+        in
+        loop subtags
+    | primary :: subtags ->
+        let primary_len = String.length primary in
+        if primary_len < 2 || primary_len > 8 then
+          Invalid "language primary subtag must be 2 to 8 letters"
+        else if not (is_language_alpha primary 0 primary_len) then
+          Invalid "language primary subtag must contain only letters"
+        else
+          let rec loop = function
+            | [] -> Valid
+            | subtag :: rest -> (
+                match validate_language_subtag subtag with
+                | Valid -> loop rest
+                | Invalid reason -> Invalid reason)
+          in
+          loop subtags
+
 (** Dispatch validation by CLI syntax kind. *)
 let validate kind value =
   match kind with
@@ -518,4 +608,7 @@ let validate kind value =
   | "cid" -> validate_cid value
   | "tid" -> validate_tid value
   | "datetime" -> validate_datetime value
+  | "language" -> validate_language value
+  | "url" | "service-url" -> validate_service_url value
+  | "artifact-path" -> validate_artifact_path value
   | _ -> Invalid ("unknown syntax kind: " ^ kind)

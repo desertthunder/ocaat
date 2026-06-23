@@ -58,6 +58,9 @@ ocaat
     tid generate
     datetime now
     datetime check <datetime>
+    language check <language>
+    url check <url>
+    artifact-path check <path>
   xrpc
     query <method> [--param k=v]...
 ```

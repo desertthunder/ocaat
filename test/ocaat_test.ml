@@ -65,7 +65,8 @@ let () =
   assert_exit validation [ "syntax"; "handle"; "check"; "tempest" ];
   assert_exit validation [ "syntax"; "handle"; "check"; "cn.8" ];
   assert_exit 0 [ "syntax"; "did"; "check"; "did:plc:oga6ppys7zwxlheuqmcm7dac" ];
-  assert_exit validation [ "syntax"; "did"; "check"; "plc:oga6ppys7zwxlheuqmcm7dac" ];
+  assert_exit validation
+    [ "syntax"; "did"; "check"; "plc:oga6ppys7zwxlheuqmcm7dac" ];
   assert_exit validation [ "syntax"; "did"; "check"; "did:METHOD:val" ];
   assert_exit 0 [ "syntax"; "nsid"; "check"; "com.atproto.repo.getRecord" ];
   assert_exit 0 [ "syntax"; "nsid"; "check"; "cn.8.lex.stuff" ];
@@ -91,7 +92,28 @@ let () =
   assert_exit 0 [ "syntax"; "datetime"; "check"; "2026-06-19T12:34:56Z" ];
   assert_exit 0
     [ "syntax"; "datetime"; "check"; "1985-04-12T23:20:50.123-07:00" ];
-  assert_exit validation [ "syntax"; "datetime"; "check"; "2026-06-19 12:34:56" ];
+  assert_exit validation
+    [ "syntax"; "datetime"; "check"; "2026-06-19 12:34:56" ];
   assert_exit validation
     [ "syntax"; "datetime"; "check"; "1985-04-12T23:20:50.123-00:00" ];
-  assert_exit 0 [ "syntax"; "datetime"; "now" ]
+  assert_exit 0 [ "syntax"; "datetime"; "now" ];
+  assert_exit 0 [ "syntax"; "language"; "check"; "en" ];
+  assert_exit 0 [ "syntax"; "language"; "check"; "zh-Hant-TW" ];
+  assert_exit 0 [ "syntax"; "language"; "check"; "x-tempest" ];
+  assert_exit validation [ "syntax"; "language"; "check"; "e" ];
+  assert_exit validation [ "syntax"; "language"; "check"; "en--US" ];
+  assert_exit validation [ "syntax"; "language"; "check"; "en_US" ];
+  assert_exit 0 [ "syntax"; "url"; "check"; "https://pds.example" ];
+  assert_exit 0 [ "syntax"; "url"; "check"; "http://localhost:4000/" ];
+  assert_exit validation [ "syntax"; "url"; "check"; "pds.example" ];
+  assert_exit validation [ "syntax"; "url"; "check"; "ftp://pds.example" ];
+  assert_exit validation
+    [ "syntax"; "url"; "check"; "https://token@pds.example" ];
+  assert_exit validation
+    [ "syntax"; "url"; "check"; "https://pds.example/xrpc" ];
+  assert_exit validation
+    [ "syntax"; "url"; "check"; "https://pds.example?debug=1" ];
+  assert_exit 0 [ "syntax"; "artifact-path"; "check"; ".sandbox/repo.car" ];
+  assert_exit 0 [ "syntax"; "artifact-path"; "check"; "/tmp/ocaat/repo.car" ];
+  assert_exit validation [ "syntax"; "artifact-path"; "check"; "" ];
+  assert_exit validation [ "syntax"; "artifact-path"; "check"; "bad\000path" ]
