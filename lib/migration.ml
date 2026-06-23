@@ -234,8 +234,7 @@ let existing_json_artifact path =
       | `Assoc fields ->
           `Assoc (("_ocaat_reused_artifact", `String path) :: fields)
       | json ->
-          `Assoc
-            [ ("_ocaat_reused_artifact", `String path); ("value", json) ])
+          `Assoc [ ("_ocaat_reused_artifact", `String path); ("value", json) ])
     (read_json path)
 
 let existing_file_artifact path =
@@ -244,17 +243,19 @@ let existing_file_artifact path =
   | Ok body ->
       Ok
         (`Assoc
-          [
-            ("_ocaat_reused_artifact", `String path);
-            ("bytes", `Int (String.length body));
-          ])
+           [
+             ("_ocaat_reused_artifact", `String path);
+             ("bytes", `Int (String.length body));
+           ])
 
 let if_existing_json_unless_force ~force path f =
-  if Sys.file_exists path && not force then Lwt.return (existing_json_artifact path)
+  if Sys.file_exists path && not force then
+    Lwt.return (existing_json_artifact path)
   else f ()
 
 let if_existing_file_unless_force ~force path f =
-  if Sys.file_exists path && not force then Lwt.return (existing_file_artifact path)
+  if Sys.file_exists path && not force then
+    Lwt.return (existing_file_artifact path)
   else f ()
 
 let json_field name = function
@@ -319,8 +320,7 @@ let json_response (response : Http.response) =
       Error (Printf.sprintf "HTTP %d returned non-JSON body" response.status)
 
 let log_json label json =
-  Fmt.pr "%s: %s@." label
-    (Yojson.Safe.to_string (Output.redact_json json))
+  Fmt.pr "%s: %s@." label (Yojson.Safe.to_string (Output.redact_json json))
 
 let get_json ?auth url =
   let open Lwt.Syntax in
@@ -427,7 +427,9 @@ let list_source_blobs ~force settings =
   let open Lwt.Syntax in
   let+ result = get_json url in
   Result.bind result (fun json ->
-      Result.map (fun () -> json) (write_json ~force settings.source_blobs_path json))
+      Result.map
+        (fun () -> json)
+        (write_json ~force settings.source_blobs_path json))
 
 let blob_path settings cid =
   Filename.concat settings.artifact_dir ("tempestpds.blob." ^ cid)
@@ -446,10 +448,10 @@ let download_source_blobs ~force ?progress settings =
                 Lwt.return
                   (Ok
                      (`Assoc
-                       [
-                         ("downloaded", `Int downloaded);
-                         ("skipped", `Int skipped);
-                       ]))
+                        [
+                          ("downloaded", `Int downloaded);
+                          ("skipped", `Int skipped);
+                        ]))
             | `String cid :: rest -> (
                 let path = blob_path settings cid in
                 Option.iter
@@ -461,20 +463,20 @@ let download_source_blobs ~force ?progress settings =
                 if Sys.file_exists path && not force then
                   loop downloaded (skipped + 1) (index + 1) rest
                 else
-                let url =
-                  xrpc_url ~base_url:settings.old_pds Sync_get_blob
-                    ~params:[ ("did", settings.did); ("cid", cid) ]
-                in
-                let* response = Http.get_bytes url in
-                if response.status < 200 || response.status >= 300 then
-                  Lwt.return
-                    (Error
-                       (Printf.sprintf "HTTP %d downloading blob %s"
-                          response.status cid))
-                else
-                  match write_file ~force path response.body with
-                  | Error reason -> Lwt.return (Error reason)
-                  | Ok () -> loop (downloaded + 1) skipped (index + 1) rest)
+                  let url =
+                    xrpc_url ~base_url:settings.old_pds Sync_get_blob
+                      ~params:[ ("did", settings.did); ("cid", cid) ]
+                  in
+                  let* response = Http.get_bytes url in
+                  if response.status < 200 || response.status >= 300 then
+                    Lwt.return
+                      (Error
+                         (Printf.sprintf "HTTP %d downloading blob %s"
+                            response.status cid))
+                  else
+                    match write_file ~force path response.body with
+                    | Error reason -> Lwt.return (Error reason)
+                    | Ok () -> loop (downloaded + 1) skipped (index + 1) rest)
             | _ :: _ ->
                 Lwt.return (Error "source blob list contains a non-string CID")
           in
@@ -561,7 +563,9 @@ let check_status ~force settings =
       let open Lwt.Syntax in
       let+ result = get_json ~auth url in
       Result.bind result (fun json ->
-          Result.map (fun () -> json) (write_json ~force settings.status_path json))
+          Result.map
+            (fun () -> json)
+            (write_json ~force settings.status_path json))
 
 (** List blobs Tempest still needs after repo import. *)
 let list_missing_blobs ~force settings =
@@ -637,7 +641,8 @@ let upload_missing_blobs ?progress settings =
 
 (** Fetch recommended PLC credentials from Tempest. *)
 let plc_recommended ~force settings =
-  if_existing_json_unless_force ~force settings.plc_recommended_path @@ fun () ->
+  if_existing_json_unless_force ~force settings.plc_recommended_path
+  @@ fun () ->
   match tempest_access settings with
   | Error reason -> Lwt.return (Error reason)
   | Ok auth ->
@@ -679,7 +684,9 @@ let plc_request_token ~force settings =
         else json_response response
       in
       Result.bind result (fun json ->
-          Result.map (fun () -> json) (write_json ~force settings.plc_token_path json))
+          Result.map
+            (fun () -> json)
+            (write_json ~force settings.plc_token_path json))
 
 (** Ask the old PDS to sign the recommended PLC operation. *)
 let plc_sign ~force settings =
@@ -709,7 +716,9 @@ let plc_sign ~force settings =
       let open Lwt.Syntax in
       let+ result = post_json ~auth ~json url in
       Result.bind result (fun json ->
-          Result.map (fun () -> json) (write_json ~force settings.plc_signed_path json))
+          Result.map
+            (fun () -> json)
+            (write_json ~force settings.plc_signed_path json))
 
 (** Submit the signed PLC operation through Tempest. *)
 let plc_submit ~force settings =
@@ -746,7 +755,9 @@ let activate ~force settings =
       let open Lwt.Syntax in
       let+ result = post_json ~auth ~json:(`Assoc []) url in
       Result.bind result (fun json ->
-          Result.map (fun () -> json) (write_json ~force settings.activate_path json))
+          Result.map
+            (fun () -> json)
+            (write_json ~force settings.activate_path json))
 
 let bind_lwt result f =
   let open Lwt.Syntax in
@@ -759,7 +770,8 @@ let full ~force ?progress settings =
       bind_lwt (get_service_auth ~force settings) (fun () ->
           bind_lwt (export_car ~force settings) (fun () ->
               bind_lwt (list_source_blobs ~force settings) (fun () ->
-                  bind_lwt (download_source_blobs ~force ?progress settings) (fun () ->
+                  bind_lwt (download_source_blobs ~force ?progress settings)
+                    (fun () ->
                       bind_lwt (create_account ~force settings) (fun () ->
                           bind_lwt (import_repo ~force settings) (fun () ->
                               bind_lwt (check_status ~force settings) (fun () ->

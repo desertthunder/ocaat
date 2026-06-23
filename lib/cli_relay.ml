@@ -49,7 +49,8 @@ let account_status relay did context =
     Lwt_main.run
       (Relay.account_status ?auth:context.Cli_context.auth ~relay ~did ())
   with
-  | Error reason -> Output.validation_error ~json:context.Cli_context.json reason
+  | Error reason ->
+      Output.validation_error ~json:context.Cli_context.json reason
   | Ok response -> Output.print_http_response ~json:context.json response
 
 let host_list relay context =
@@ -66,7 +67,8 @@ let host_status relay hostname context =
     Lwt_main.run
       (Relay.host_status ?auth:context.Cli_context.auth ~relay ~hostname ())
   with
-  | Error reason -> Output.validation_error ~json:context.Cli_context.json reason
+  | Error reason ->
+      Output.validation_error ~json:context.Cli_context.json reason
   | Ok response -> Output.print_http_response ~json:context.json response
 
 let account_list_cmd =

@@ -4,7 +4,9 @@ open Cmdliner.Term.Syntax
 (** Run [xrpc query] with the shared CLI context. *)
 let query method_ params context =
   match context.Cli_context.pds with
-  | None -> Output.usage_error ~json:context.Cli_context.json "xrpc query requires --pds <url>"
+  | None ->
+      Output.usage_error ~json:context.Cli_context.json
+        "xrpc query requires --pds <url>"
   | Some pds -> (
       match Xrpc.parse_params params with
       | Error reason -> Output.validation_error ~json:context.json reason

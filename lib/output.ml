@@ -39,7 +39,6 @@ let exit_code_of_error_kind = function
   | Interrupted -> Exit_code.interrupted
 
 let redacted = "[REDACTED]"
-
 let lowercase_ascii value = String.lowercase_ascii value
 
 let contains ~needle value =
@@ -93,7 +92,8 @@ let redact_text value =
     else line
   in
   value |> String.split_on_char '\n'
-  |> List.map redact_authorization |> String.concat "\n"
+  |> List.map redact_authorization
+  |> String.concat "\n"
 
 let redact_body body =
   match Yojson.Safe.from_string body with
@@ -108,25 +108,33 @@ let error_json ?status kind message =
     ]
   in
   let fields =
-    match status with None -> fields | Some status -> ("status", `Int status) :: fields
+    match status with
+    | None -> fields
+    | Some status -> ("status", `Int status) :: fields
   in
   `Assoc [ ("error", `Assoc (List.rev fields)) ]
 
 let print_error ?status ~json kind message =
   let message = redact_text message in
-  if json then Fmt.epr "%s@." (Yojson.Safe.to_string (error_json ?status kind message))
-  else (
-    let status_text =
-      match status with None -> "" | Some status -> Printf.sprintf " (HTTP %d)" status
-    in
-    Fmt.epr "error: %s%s: %s@." (string_of_error_kind kind) status_text message);
+  (if json then
+     Fmt.epr "%s@." (Yojson.Safe.to_string (error_json ?status kind message))
+   else
+     let status_text =
+       match status with
+       | None -> ""
+       | Some status -> Printf.sprintf " (HTTP %d)" status
+     in
+     Fmt.epr "error: %s%s: %s@." (string_of_error_kind kind) status_text message);
   exit_code_of_error_kind kind
 
 let usage_error ~json message = print_error ~json Usage message
 let validation_error ~json message = print_error ~json Validation message
 let auth_error ~json message = print_error ~json Auth message
 let network_error ~json message = print_error ~json Network message
-let remote_error ?status ~json message = print_error ?status ~json Remote message
+
+let remote_error ?status ~json message =
+  print_error ?status ~json Remote message
+
 let filesystem_error ~json message = print_error ~json Filesystem message
 let interrupted_error ~json message = print_error ~json Interrupted message
 
@@ -158,7 +166,8 @@ let print_json_value ?(compact = true) json =
   Fmt.pr "%s@." rendered
 
 let message_of_http_response (response : Http.response) =
-  if response.body = "" then "empty response body" else redact_body response.body
+  if response.body = "" then "empty response body"
+  else redact_body response.body
 
 (** Print an HTTP response and return a process exit code.
 
@@ -172,8 +181,11 @@ let print_http_response ~json (response : Http.response) =
   else if response.status = 0 then
     network_error ~json (message_of_http_response response)
   else if response.status = 401 || response.status = 403 then
-    print_error ~status:response.status ~json Auth (message_of_http_response response)
-  else remote_error ~status:response.status ~json (message_of_http_response response)
+    print_error ~status:response.status ~json Auth
+      (message_of_http_response response)
+  else
+    remote_error ~status:response.status ~json
+      (message_of_http_response response)
 
 module Preflight = struct
   let require_value name = function
@@ -193,8 +205,10 @@ module Preflight = struct
          ^ handle_reason)
 
   let require_input_file path =
-    if not (Sys.file_exists path) then Error ("input file does not exist: " ^ path)
-    else if Sys.is_directory path then Error ("input path is a directory: " ^ path)
+    if not (Sys.file_exists path) then
+      Error ("input file does not exist: " ^ path)
+    else if Sys.is_directory path then
+      Error ("input path is a directory: " ^ path)
     else Ok path
 
   let require_output_path ?(force = false) path =
@@ -202,7 +216,8 @@ module Preflight = struct
     | Syntax.Invalid reason -> Error ("invalid output path: " ^ reason)
     | Syntax.Valid ->
         if Sys.file_exists path && not force then
-          Error ("output already exists: " ^ path ^ " (pass --force to overwrite)")
+          Error
+            ("output already exists: " ^ path ^ " (pass --force to overwrite)")
         else Ok path
 
   let require_artifact_state ~exists path =
@@ -268,10 +283,15 @@ module Progress = struct
   let event t ?current ?total label fields =
     let fields =
       ("event", `String label)
-      :: (match current with None -> fields | Some value -> ("current", `Int value) :: fields)
+      ::
+      (match current with
+      | None -> fields
+      | Some value -> ("current", `Int value) :: fields)
     in
     let fields =
-      match total with None -> fields | Some value -> ("total", `Int value) :: fields
+      match total with
+      | None -> fields
+      | Some value -> ("total", `Int value) :: fields
     in
     let json = redact_json (`Assoc (List.rev fields)) in
     if t.json then Fmt.pr "%s@." (Yojson.Safe.to_string json)

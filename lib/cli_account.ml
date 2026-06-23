@@ -3,7 +3,8 @@ open Cmdliner.Term.Syntax
 
 let run_migrate step artifact_dir context =
   match Migration.settings ?artifact_dir () with
-  | Error reason -> Output.validation_error ~json:context.Cli_context.json reason
+  | Error reason ->
+      Output.validation_error ~json:context.Cli_context.json reason
   | Ok settings -> (
       let progress = Output.Progress.make ~json:context.json in
       match

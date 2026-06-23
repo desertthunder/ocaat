@@ -1,13 +1,26 @@
 (** PDS inspection operations. *)
 
 (** PDS-related XRPC methods used by this module. *)
-type method_ = Describe_server | List_repos | Get_repo_status
+type method_ =
+  | Describe_server
+  | List_repos
+  | Get_repo_status
+  | Health
+  | Stats
+  | Admin_status
 
 (** Convert a PDS method variant to its NSID. *)
 let method_nsid = function
   | Describe_server -> "com.atproto.server.describeServer"
   | List_repos -> "com.atproto.sync.listRepos"
   | Get_repo_status -> "com.atproto.sync.getRepoStatus"
+  | Health -> "_health"
+  | Stats -> "_stats"
+  | Admin_status -> "_admin/status"
+
+(** Build a non-NSID operational XRPC URL such as [/xrpc/_health]. *)
+let operational_url host method_ =
+  Http.xrpc_url ~base_url:host ~method_:(method_nsid method_) ~params:[]
 
 (** Build the describeServer URL for a PDS host or service URL. *)
 let describe_url host =
@@ -19,6 +32,16 @@ let describe_url host =
     optional bearer token is accepted for consistency with the shared CLI
     context. *)
 let describe ?auth host = Http.get_text ?auth (describe_url host)
+
+(** Call [/xrpc/_health] on a PDS. *)
+let health host = Http.get_text (operational_url host Health)
+
+(** Call [/xrpc/_stats] on a PDS. *)
+let stats host = Http.get_text (operational_url host Stats)
+
+(** Call [/xrpc/_admin/status] on a PDS with admin bearer auth. *)
+let admin_status ~admin_token host =
+  Http.get_text ~auth:admin_token (operational_url host Admin_status)
 
 (** Build a listRepos URL for a PDS host or service URL. *)
 let list_repos_url ?cursor host =
@@ -61,6 +84,165 @@ let string_field name json =
 
 let bool_field name json =
   match json_field name json with Some (`Bool value) -> Some value | _ -> None
+
+let int_field name json =
+  match json_field name json with
+  | Some (`Int value) -> Some value
+  | Some (`Intlit value) -> int_of_string_opt value
+  | _ -> None
+
+let list_field name json =
+  match json_field name json with
+  | Some (`List values) -> Some values
+  | _ -> None
+
+let object_field name json =
+  match json_field name json with
+  | Some (`Assoc _ as value) -> Some value
+  | _ -> None
+
+let field_path names json =
+  let rec loop json = function
+    | [] -> Some json
+    | name :: rest -> (
+        match json_field name json with
+        | None -> None
+        | Some json -> loop json rest)
+  in
+  loop json names
+
+let string_path names json =
+  match field_path names json with
+  | Some (`String value) -> Some value
+  | _ -> None
+
+let bool_path names json =
+  match field_path names json with
+  | Some (`Bool value) -> Some value
+  | _ -> None
+
+let int_path names json =
+  match field_path names json with
+  | Some (`Int value) -> Some value
+  | Some (`Intlit value) -> int_of_string_opt value
+  | _ -> None
+
+let hostname host =
+  let uri = Uri.of_string (Http.normalize_base_url host) in
+  Option.value ~default:host (Uri.host uri)
+
+let service_did_from_describe body =
+  match Yojson.Safe.from_string body with
+  | json -> string_field "did" json
+  | exception Yojson.Json_error _ -> None
+
+let fetch_service_did ?auth host =
+  let open Lwt.Syntax in
+  let+ response = describe ?auth host in
+  if response.status >= 200 && response.status < 300 then
+    service_did_from_describe response.body
+  else None
+
+let parse_json_response endpoint body =
+  match Yojson.Safe.from_string body with
+  | json -> Ok json
+  | exception Yojson.Json_error reason ->
+      Error (endpoint ^ " returned invalid JSON: " ^ reason)
+
+let rec sum_int_field name = function
+  | [] -> 0
+  | json :: rest ->
+      Option.value ~default:0 (int_field name json) + sum_int_field name rest
+
+type inspection = {
+  hostname : string;
+  service_did : string option;
+  health_state : string option;
+  account_count : int option;
+  repo_count : int option;
+  blob_count : int option;
+  sequencer_cursor : int option;
+  configured_crawlers : string list option;
+  storage_backend : string option;
+  admin_auth_configured : bool option;
+  status_cues : (string * string) list;
+}
+
+let status_cues_from_health json =
+  match field_path [ "health"; "checks" ] json with
+  | Some (`Assoc fields) ->
+      List.map (fun (name, value) -> (name, Yojson.Safe.to_string value)) fields
+  | _ -> (
+      match object_field "storage" json with
+      | Some (`Assoc fields) ->
+          List.map
+            (fun (name, value) -> (name, Yojson.Safe.to_string value))
+            fields
+      | _ -> [])
+
+let crawlers_from_describe body =
+  match Yojson.Safe.from_string body with
+  | json -> (
+      match list_field "availableUserDomains" json with
+      | Some domains ->
+          Some
+            (List.filter_map
+               (function `String value -> Some value | _ -> None)
+               domains)
+      | None -> None)
+  | exception Yojson.Json_error _ -> None
+
+let public_inspection ?service_did ?describe_body ~host json =
+  let metrics = object_field "metrics" json in
+  let account_count =
+    match metrics with
+    | Some metrics -> (
+        match int_field "hostedAccountCount" metrics with
+        | Some _ as count -> count
+        | None -> int_field "totalAccountCount" metrics)
+    | None -> None
+  in
+  {
+    hostname = hostname host;
+    service_did;
+    health_state =
+      (match string_path [ "health"; "status" ] json with
+      | Some _ as value -> value
+      | None -> string_field "status" json);
+    account_count;
+    repo_count = Option.bind metrics (int_field "repoCount");
+    blob_count = Option.bind metrics (int_field "blobCount");
+    sequencer_cursor = Option.bind metrics (int_field "sequencerCursor");
+    configured_crawlers = Option.bind describe_body crawlers_from_describe;
+    storage_backend =
+      (match string_path [ "storage"; "adapter" ] json with
+      | Some _ as value -> value
+      | None -> string_path [ "storage"; "backend" ] json);
+    admin_auth_configured = None;
+    status_cues = status_cues_from_health json;
+  }
+
+let admin_inspection ?service_did ?describe_body ~host json =
+  let accounts = Option.value ~default:[] (list_field "accounts" json) in
+  {
+    hostname = hostname host;
+    service_did;
+    health_state = string_field "status" json;
+    account_count =
+      (match int_path [ "blobStore"; "accountCount" ] json with
+      | Some _ as count -> count
+      | None -> Some (List.length accounts));
+    repo_count = Some (sum_int_field "repoCount" accounts);
+    blob_count =
+      (match int_path [ "blobStore"; "blobCount" ] json with
+      | Some _ as count -> count
+      | None -> Some (sum_int_field "blobCount" accounts));
+    sequencer_cursor = int_path [ "sequencer"; "currentSeq" ] json;
+    configured_crawlers = Option.bind describe_body crawlers_from_describe;
+    storage_backend = string_path [ "blobStore"; "adapter" ] json;
+    admin_auth_configured = bool_path [ "admin"; "tokenConfigured" ] json;
+    status_cues = status_cues_from_health json;
+  }
 
 (** Return the display status for a listRepos/getRepoStatus JSON object. *)
 let repo_status_text json =

@@ -1,9 +1,16 @@
 let usage = 64
 let validation = 65
+let auth = 66
 
 let assert_equal expected actual =
   if actual <> expected then
     failwith (Printf.sprintf "expected %S, got %S" expected actual)
+
+let assert_int_option expected actual =
+  if actual <> expected then failwith "unexpected optional integer value"
+
+let assert_bool_option expected actual =
+  if actual <> expected then failwith "unexpected optional boolean value"
 
 let assert_exit expected args =
   let actual = Ocaat.main ~argv:(Array.of_list ("ocaat" :: args)) () in
@@ -14,24 +21,103 @@ let () =
   let redacted =
     Ocaat__Output.redact_json
       (`Assoc
-        [
-          ("accessJwt", `String "access-secret");
-          ("refreshJwt", `String "refresh-secret");
-          ("password", `String "password-secret");
-          ("serviceAuth", `String "service-secret");
-          ("adminToken", `String "admin-secret");
-          ("ok", `String "visible");
-        ])
+         [
+           ("accessJwt", `String "access-secret");
+           ("refreshJwt", `String "refresh-secret");
+           ("password", `String "password-secret");
+           ("serviceAuth", `String "service-secret");
+           ("adminToken", `String "admin-secret");
+           ("ok", `String "visible");
+         ])
   in
   assert_equal
     {|{"accessJwt":"[REDACTED]","refreshJwt":"[REDACTED]","password":"[REDACTED]","serviceAuth":"[REDACTED]","adminToken":"[REDACTED]","ok":"visible"}|}
     (Yojson.Safe.to_string redacted);
+  let healthy_stats =
+    `Assoc
+      [
+        ("status", `String "ok");
+        ( "metrics",
+          `Assoc
+            [
+              ("hostedAccountCount", `Int 2);
+              ("repoCount", `Int 2);
+              ("blobCount", `Int 9);
+              ("sequencerCursor", `Int 42);
+            ] );
+        ( "health",
+          `Assoc
+            [
+              ("status", `String "ok");
+              ("checks", `Assoc [ ("storageWritable", `Bool true) ]);
+            ] );
+        ("storage", `Assoc [ ("adapter", `String "local") ]);
+      ]
+  in
+  let healthy_inspection =
+    Ocaat__Pds.public_inspection ~service_did:"did:web:pds.example"
+      ~describe_body:{|{"availableUserDomains":[".example.test"]}|}
+      ~host:"https://pds.example/" healthy_stats
+  in
+  assert_equal "pds.example" healthy_inspection.hostname;
+  assert_equal "ok" (Option.get healthy_inspection.health_state);
+  assert_int_option (Some 2) healthy_inspection.account_count;
+  assert_int_option (Some 2) healthy_inspection.repo_count;
+  assert_int_option (Some 9) healthy_inspection.blob_count;
+  assert_int_option (Some 42) healthy_inspection.sequencer_cursor;
+  assert_equal "local" (Option.get healthy_inspection.storage_backend);
+  let degraded_stats =
+    `Assoc
+      [
+        ("status", `String "degraded");
+        ("metrics", `Assoc [ ("hostedAccountCount", `Int 1) ]);
+        ( "health",
+          `Assoc
+            [
+              ("status", `String "degraded");
+              ("checks", `Assoc [ ("statsScanErrorCount", `Int 1) ]);
+            ] );
+      ]
+  in
+  let degraded_inspection =
+    Ocaat__Pds.public_inspection ~host:"pds.example" degraded_stats
+  in
+  assert_equal "degraded" (Option.get degraded_inspection.health_state);
+  assert_int_option (Some 1) degraded_inspection.account_count;
+  assert (List.mem ("statsScanErrorCount", "1") degraded_inspection.status_cues);
+  let admin_status =
+    `Assoc
+      [
+        ("status", `String "ok");
+        ("admin", `Assoc [ ("tokenConfigured", `Bool true) ]);
+        ("sequencer", `Assoc [ ("currentSeq", `Int 77) ]);
+        ("blobStore", `Assoc [ ("adapter", `String "s3") ]);
+        ( "accounts",
+          `List
+            [
+              `Assoc [ ("repoCount", `Int 1); ("blobCount", `Int 3) ];
+              `Assoc [ ("repoCount", `Int 1); ("blobCount", `Int 4) ];
+            ] );
+      ]
+  in
+  let admin_inspection =
+    Ocaat__Pds.admin_inspection ~host:"https://pds.example" admin_status
+  in
+  assert_int_option (Some 2) admin_inspection.account_count;
+  assert_int_option (Some 2) admin_inspection.repo_count;
+  assert_int_option (Some 7) admin_inspection.blob_count;
+  assert_int_option (Some 77) admin_inspection.sequencer_cursor;
+  assert_equal "s3" (Option.get admin_inspection.storage_backend);
+  assert_bool_option (Some true) admin_inspection.admin_auth_configured;
+  assert (Result.is_error (Ocaat__Pds.parse_json_response "_stats" "not-json"));
   let artifact_path =
     "/tmp/ocaat-artifact-helper-test-" ^ string_of_int (Unix.getpid ())
   in
   assert (Ocaat__Output.Artifact.write_file artifact_path "one" = Ok ());
-  assert (Result.is_error (Ocaat__Output.Artifact.write_file artifact_path "two"));
-  assert (Ocaat__Output.Artifact.write_file ~force:true artifact_path "two" = Ok ());
+  assert (
+    Result.is_error (Ocaat__Output.Artifact.write_file artifact_path "two"));
+  assert (
+    Ocaat__Output.Artifact.write_file ~force:true artifact_path "two" = Ok ());
   assert_equal "two"
     (let channel = open_in_bin artifact_path in
      Fun.protect
@@ -83,6 +169,10 @@ let () =
   assert_exit validation
     [ "pds"; "account"; "status"; "not-a-did"; "--pds"; "https://pds.example" ];
   assert_exit usage [ "pds"; "account"; "status"; "did:plc:abc" ];
+  assert_exit usage [ "pds"; "health" ];
+  assert_exit usage [ "pds"; "stats" ];
+  assert_exit usage [ "pds"; "admin-status" ];
+  assert_exit auth [ "pds"; "admin-status"; "--pds"; "https://pds.example" ];
   assert_exit validation [ "relay"; "account"; "status"; "not-a-did" ];
   assert_exit 0
     [ "key"; "inspect"; "z42tvqQS5sVhaV1jLZ5P6ZKEPEbSpYavNVmT88YDYV3MEZ8D" ];

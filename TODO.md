@@ -100,18 +100,21 @@ Tasks for implementing the Tempest-first `ocaat` CLI described in `SPEC.md`.
 
 ## Phase 4: PDS inspection
 
-- [ ] Implement `ocaat pds health [--pds <url>] [--json]` using `/xrpc/_health`. *
-- [ ] Implement `ocaat pds stats [--pds <url>] [--json]` using `/xrpc/_stats`. *
-- [ ] Implement `ocaat pds admin-status [--pds <url>] [--admin-token <token>] [--json]` *
+- [x] Implement `ocaat pds health [--pds <url>] [--json]` using `/xrpc/_health`. *
+- [x] Implement `ocaat pds stats [--pds <url>] [--json]` using `/xrpc/_stats`. *
+- [x] Implement `ocaat pds admin-status [--pds <url>] [--admin-token <token>] [--json]` *
       using `/xrpc/_admin/status`.
-- [ ] Make human PDS output include hostname, service DID, health state, account
+- [x] Make human PDS output include hostname, service DID, health state, account
       count, repo count, blob count, sequencer cursor, configured crawlers,
       storage backend, admin auth configured, and status cues.
-- [ ] Add tests for healthy, degraded, and unavailable PDS responses.
-- [ ] Add tests for admin-status without admin auth and with invalid admin auth.
+- [x] Add tests for healthy, degraded, and unavailable PDS responses.
+- [x] Add tests for admin-status without admin auth and with invalid admin auth.
 
 ## Phase 5: PDS admin commands
 
+- [ ] Add a lightweight mocked HTTP fixture harness for CLI tests, covering
+      request method/path/query, bearer/admin auth headers, response status/body,
+      and deterministic port allocation.
 - [ ] Create `lib/cli_pds_admin.ml`.
 - [ ] Add reusable `Pds_admin` module for admin API calls.
 - [ ] Implement `pds admin account create --handle <handle> --email <email> [--password <password>]`.

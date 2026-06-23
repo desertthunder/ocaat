@@ -449,6 +449,11 @@ ocaat pds admin invite create --count <n> --uses <n>
 
 Required behavior:
 
+- Before adding the admin command surface, tests should have a lightweight local
+  HTTP fixture harness. It should bind an ephemeral local port, assert request
+  method/path/query and bearer/admin auth headers, return configured status/body
+  pairs, and let CLI tests cover success, auth failure, remote XRPC errors, and
+  invalid JSON without depending on a live Tempest deployment.
 - All commands require admin auth.
 - Account and blob mutations print a preflight summary.
 - Takedown, purge, delete, and reset-password require confirmation or `--yes`.

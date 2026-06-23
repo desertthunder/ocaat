@@ -129,7 +129,9 @@ let dry_run_arg =
 
 let force_arg =
   let open Cmdliner in
-  let doc = "Overwrite existing artifacts or bypass safety checks when supported." in
+  let doc =
+    "Overwrite existing artifacts or bypass safety checks when supported."
+  in
   Arg.(value & flag & info [ "force"; "f" ] ~doc)
 
 let setup_and_make_context style_renderer quiet verbose verbosity json pds auth
