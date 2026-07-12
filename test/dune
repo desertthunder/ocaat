@@ -1,3 +1,15 @@
 (test
  (name ocaat_test)
+ (modules ocaat_test)
  (libraries ocaat))
+
+(test
+ (name cli_fixture_test)
+ (modules cli_fixture cli_fixture_test)
+ (deps ../bin/main.exe)
+ (libraries
+  ocaat
+  cohttp-lwt-unix
+  lwt.unix
+  unix
+  yojson))

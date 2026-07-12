@@ -68,6 +68,14 @@ let text value =
   |> List.map redact_authorization_line
   |> String.concat "\n"
 
+(** Redact one HTTP header value, including non-Authorization token headers. *)
+let header_value name value =
+  if sensitive_field_name name then redacted else text value
+
+(** Redact HTTP headers before exposing them in a diagnostic or test record. *)
+let headers fields =
+  List.map (fun (name, value) -> (name, header_value name value)) fields
+
 (** Redact a response body, parsing JSON when possible. *)
 let body body =
   match Yojson.Safe.from_string body with

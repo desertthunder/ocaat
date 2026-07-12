@@ -9,70 +9,56 @@ decision.
 ### T01: Establish the document output contract
 
 **Spec:** [CLI foundations](specs/cli-foundations.md)
+**Status:** complete
 
-**What to build:** Replace the shared boolean JSON setting with the Markdown,
+Replaced the shared boolean JSON setting with the Markdown,
 JSON, JSONL, and raw format contract; add versioned documents, provenance,
 renderers, and versioned errors.
-
-**Blocked by:** None - can start immediately
-
-**Acceptance criteria:**
-
-- [ ] --json remains an alias for JSON format and existing commands stay
-      invocable with it.
-- [ ] New documents use ocaat.document.v1, carry source and fetched-at
-      metadata, and keep stdout free of diagnostics.
-- [ ] JSON and human errors are sanitized and preserve stable exit categories.
-
-**Verification:**
-
-- dune runtest
-- dune exec -- ocaat pds describe https://tempest.desertthunder.dev --format json
 
 ### T02: Add a reusable CLI HTTP fixture harness
 
 **Spec:** [CLI foundations](specs/cli-foundations.md)
+**Status:** complete
 
-**What to build:** Create deterministic local HTTP fixtures that run commands
-through the executable boundary and assert request method, URL, headers, body,
-response body, stderr, stdout, and exit status.
-
-**Blocked by:** None - can start immediately
-
-**Acceptance criteria:**
-
-- [ ] Fixtures can model JSON, binary, malformed, delayed, and remote-error
-      responses with deterministic ports.
-- [ ] Tests never need live PDS access for a pass.
-- [ ] Sensitive headers and bodies are asserted only through redacted output.
-
-**Verification:**
-
-- dune runtest
+Created a deterministic local HTTP fixtures that run commands through the executable
+boundary and assert request method, URL, headers, body, response body, stderr, stdout,
+and exit status.
 
 ### T03: Decide the bounded CAR implementation path
 
 **Spec:** [Local repository CAR inspection](specs/repository-car-inspection.md)
+**Status:** complete
 
-**What to build:** Run a small compatibility spike against Tempest-compatible
-CAR fixtures, document parser limits, and decide whether a maintained pure
-OCaml dependency can satisfy the required CAR, CID, DAG-CBOR, commit, and MST
-subset.
+Ran a compatibility spike against Tempest-compatible CAR fixtures, documented
+parser limits, and evaluated Pegasus `ipld` as the exact OCaml dependency
+candidate. Its current reader lacks the validation and limits required for
+untrusted input, so T12 retains a bounded native implementation while treating
+Pegasus as the primary reference and future dependency candidate.
 
-**Blocked by:** None - can start immediately
+### T04: Render useful Markdown documents
+
+**Spec:** [Useful Markdown output](specs/useful-markdown-output.md)
+
+**What to build:** Replace the JSON-only Markdown view with semantic,
+kind-aware summaries, visible provenance, and a final `Raw` section containing
+the complete redacted result envelope. Construct and serialize CommonMark with
+cmarkit after separate dependency approval.
+
+**Blocked by:** T01
 
 **Acceptance criteria:**
 
-- [ ] The spike records compatibility results for valid, malformed, truncated,
-      invalid-CID, and oversized fixtures.
-- [ ] It chooses a bounded native implementation or identifies an exact
-      dependency candidate with evidence.
-- [ ] It does not add a dependency without a separate user approval.
+- [ ] Every document kind has a useful generic or kind-specific summary.
+- [ ] Provenance remains visible and `Raw` contains the complete redacted
+      `ocaat.document.v1` envelope.
+- [ ] Untrusted strings cannot alter Markdown structure or bypass redaction.
+- [ ] JSON, JSONL, and raw output remain unchanged.
 
 **Verification:**
 
 - dune runtest
-- Execute a temporary CLI fixture reader or test executable against each fixture.
+- Execute representative CLI commands with `--format markdown` and parse their
+  output with cmarkit in tests.
 
 ## Milestone 1: read-only CLI and skill release
 
@@ -80,7 +66,7 @@ subset.
 PLC identity, Lexicon, JSONL batch, and local CAR using stable provenance; all
 three bundled skills install safely into the default skills directory.
 
-### T04: Migrate existing PDS reads to result documents
+### T05: Migrate existing PDS reads to result documents
 
 **Spec:** [PDS observability](specs/pds-observability.md)
 
@@ -101,7 +87,7 @@ endpoint or authentication semantics.
 - dune runtest
 - dune exec -- ocaat pds health --pds https://tempest.desertthunder.dev --format json
 
-### T05: Implement identity resolution
+### T06: Implement identity resolution
 
 **Spec:** [Resource resolution and universal get](specs/resource-resolution-and-universal-get.md)
 
@@ -124,14 +110,14 @@ PDS service extraction, and the resolve command.
 - dune runtest
 - dune exec -- ocaat resolve did:plc:oga6ppys7zwxlheuqmcm7dac --format json
 
-### T06: Implement record and PLC reads
+### T07: Implement record and PLC reads
 
 **Spec:** [Record and PLC reads](specs/record-and-plc-reads.md)
 
 **What to build:** Add record get, record-list page and collection-summary
 modes, PLC show, and PLC history using the identity result.
 
-**Blocked by:** T01, T02, T05
+**Blocked by:** T01, T02, T06
 
 **Acceptance criteria:**
 
@@ -144,7 +130,7 @@ modes, PLC show, and PLC history using the identity result.
 - dune runtest
 - dune exec -- ocaat record list did:plc:oga6ppys7zwxlheuqmcm7dac --collections --format json
 
-### T07: Complete read-only XRPC calls and descriptions
+### T08: Complete read-only XRPC calls and descriptions
 
 **Spec:** [Lexicon and XRPC reads](specs/lexicon-and-xrpc-reads.md)
 
@@ -164,7 +150,7 @@ alias, apply the document contract, and add XRPC description from Lexicon data.
 - dune runtest
 - dune exec -- ocaat xrpc call com.atproto.server.describeServer --pds https://tempest.desertthunder.dev --format json
 
-### T08: Implement Lexicon reads
+### T09: Implement Lexicon reads
 
 **Spec:** [Lexicon and XRPC reads](specs/lexicon-and-xrpc-reads.md)
 
@@ -172,7 +158,7 @@ alias, apply the document contract, and add XRPC description from Lexicon data.
 DID resolution, PDS record retrieval, source evidence, and bounded network
 handling.
 
-**Blocked by:** T01, T02, T05
+**Blocked by:** T01, T02, T06
 
 **Acceptance criteria:**
 
@@ -187,14 +173,14 @@ handling.
 - dune runtest
 - dune exec -- ocaat xrpc describe com.atproto.repo.getRecord --format json
 
-### T09: Add universal get
+### T10: Add universal get
 
 **Spec:** [Resource resolution and universal get](specs/resource-resolution-and-universal-get.md)
 
 **What to build:** Add the get dispatcher for handles, DIDs, AT URIs, supported
 AT Protocol web URLs, NSIDs, and PDS URLs.
 
-**Blocked by:** T04, T05, T06, T08
+**Blocked by:** T05, T06, T07, T09
 
 **Acceptance criteria:**
 
@@ -207,14 +193,14 @@ AT Protocol web URLs, NSIDs, and PDS URLs.
 - dune runtest
 - dune exec -- ocaat get did:plc:oga6ppys7zwxlheuqmcm7dac --format json
 
-### T10: Add deterministic JSONL batch reads
+### T11: Add deterministic JSONL batch reads
 
 **Spec:** [Batch JSONL](specs/batch-jsonl.md)
 
 **What to build:** Add sequential JSONL batch input and one JSONL document or
 error per input record.
 
-**Blocked by:** T01, T09
+**Blocked by:** T01, T10
 
 **Acceptance criteria:**
 
@@ -228,11 +214,11 @@ error per input record.
 - dune runtest
 - Pipe valid, invalid, then valid resource lines through dune exec -- ocaat batch.
 
-### T11: Implement bounded CAR parsing and verification
+### T12: Implement bounded CAR parsing and verification
 
 **Spec:** [Local repository CAR inspection](specs/repository-car-inspection.md)
 
-**What to build:** Implement the approved CAR v1, CID, deterministic DAG-CBOR,
+**What to build:** Implement the approved CAR v1, CID, deterministic DRISL-CBOR,
 commit, and MST subset with explicit decode limits and repo verify.
 
 **Blocked by:** T01, T03
@@ -249,14 +235,14 @@ commit, and MST subset with explicit decode limits and repo verify.
 - dune runtest
 - dune exec -- ocaat repo verify test/fixtures/repos/valid.car --format json
 
-### T12: Add CAR inspection views
+### T13: Add CAR inspection views
 
 **Spec:** [Local repository CAR inspection](specs/repository-car-inspection.md)
 
 **What to build:** Add repo inspect, list, and mst views on top of verified local
 CAR parsing.
 
-**Blocked by:** T11
+**Blocked by:** T12
 
 **Acceptance criteria:**
 
@@ -269,14 +255,14 @@ CAR parsing.
 - dune runtest
 - dune exec -- ocaat repo inspect test/fixtures/repos/valid.car --format json
 
-### T13: Package the atproto-read skill
+### T14: Package the atproto-read skill
 
 **Spec:** [Agent skills and self-description](specs/agent-skills-and-self-description.md)
 
 **What to build:** Write the first release atproto-read SKILL.md and its command,
 resource, and output-contract reference files.
 
-**Blocked by:** T04, T05, T06, T07, T08, T09, T10, T12
+**Blocked by:** T05, T06, T07, T08, T09, T10, T11, T13
 
 **Acceptance criteria:**
 
@@ -288,14 +274,14 @@ resource, and output-contract reference files.
 
 - Review each documented command against dune exec -- ocaat --help=plain.
 
-### T14: Package the atproto-research skill
+### T15: Package the atproto-research skill
 
 **Spec:** [Agent skills and self-description](specs/agent-skills-and-self-description.md)
 
 **What to build:** Write the research SKILL.md plus discovery and provenance
 references for evidence-oriented resource investigation.
 
-**Blocked by:** T05, T06, T09
+**Blocked by:** T06, T07, T10
 
 **Acceptance criteria:**
 
@@ -309,13 +295,13 @@ references for evidence-oriented resource investigation.
 
 - Review the skill against fixture-backed CLI examples.
 
-### T15: Package the atproto-lexicons skill
+### T16: Package the atproto-lexicons skill
 
 **Spec:** [Agent skills and self-description](specs/agent-skills-and-self-description.md)
 
 **What to build:** Write the Lexicon SKILL.md and read-only workflow reference.
 
-**Blocked by:** T07, T08
+**Blocked by:** T08, T09
 
 **Acceptance criteria:**
 
@@ -328,14 +314,14 @@ references for evidence-oriented resource investigation.
 
 - Review documented examples through dune exec -- ocaat xrpc describe.
 
-### T16: Add skill installation and CLI self-description
+### T17: Add skill installation and CLI self-description
 
 **Spec:** [Agent skills and self-description](specs/agent-skills-and-self-description.md)
 
 **What to build:** Add skill list, show, path, and safe named installation;
 also add capabilities, doctor, and shell completions.
 
-**Blocked by:** T01, T13, T14, T15
+**Blocked by:** T01, T14, T15, T16
 
 **Acceptance criteria:**
 
@@ -350,7 +336,7 @@ also add capabilities, doctor, and shell completions.
 - dune exec -- ocaat skill install atproto-read --dest /tmp/ocaat-skills-test
 - dune exec -- ocaat capabilities --format json
 
-### T17: Verify and document the first release
+### T18: Verify and document the first release
 
 **Spec:** [Documentation and release readiness](specs/documentation-and-release.md)
 
@@ -358,7 +344,7 @@ also add capabilities, doctor, and shell completions.
 document the three skill installations, and update the public command examples
 to match the executable.
 
-**Blocked by:** T04, T05, T06, T07, T08, T09, T10, T12, T16
+**Blocked by:** T04, T05, T06, T07, T08, T09, T10, T11, T13, T17
 
 **Acceptance criteria:**
 
@@ -378,14 +364,14 @@ to match the executable.
 MCP and a loopback-first HTTP gateway, with generated documentation that is
 verified against the registered interfaces.
 
-### T18: Build the read-only MCP server
+### T19: Build the read-only MCP server
 
 **Spec:** [MCP server](specs/mcp-server.md)
 
 **What to build:** Expose completed read-only domain modules as stdio MCP tools
 and resources without shelling out to the CLI.
 
-**Blocked by:** T04, T05, T06, T07, T08, T09, T10, T12, T16
+**Blocked by:** T04, T05, T06, T07, T08, T09, T10, T11, T13, T17
 
 **Acceptance criteria:**
 
@@ -399,14 +385,14 @@ and resources without shelling out to the CLI.
 - Run an MCP initialization, tool-list, success, invalid-input, error, and
   cancellation fixture suite.
 
-### T19: Build the loopback-first HTTP gateway
+### T20: Build the loopback-first HTTP gateway
 
 **Spec:** [HTTP gateway](specs/http-gateway.md)
 
 **What to build:** Add the read-only serve command and documented loopback HTTP
 endpoints using shared domain modules.
 
-**Blocked by:** T04, T05, T06, T08, T09, T10, T16
+**Blocked by:** T04, T05, T06, T07, T09, T10, T11, T17
 
 **Acceptance criteria:**
 
@@ -420,14 +406,14 @@ endpoints using shared domain modules.
 - Execute loopback endpoint integration tests and compare representative JSON
   with CLI output.
 
-### T20: Generate API reference artifacts
+### T21: Generate API reference artifacts
 
 **Spec:** [Generated API documentation](specs/generated-api-documentation.md)
 
 **What to build:** Generate deterministic CLI, skill, MCP, and HTTP API
 reference artifacts from the shared capability registry.
 
-**Blocked by:** T16, T18, T19
+**Blocked by:** T17, T19, T20
 
 **Acceptance criteria:**
 
@@ -446,14 +432,14 @@ reference artifacts from the shared capability registry.
 transfer, blobs, and PDS administration are all explicit, preflighted, and
 fixture-covered. Tempest-specific capabilities remain isolated integrations.
 
-### T21: Extend XRPC for procedures and binary transfer
+### T22: Extend XRPC for procedures and binary transfer
 
 **Spec:** [CLI foundations](specs/cli-foundations.md)
 
 **What to build:** Add JSON and binary procedure bodies, binary query responses,
 custom headers, typed remote errors, safe debug logging, and timeouts.
 
-**Blocked by:** T02, T07
+**Blocked by:** T02, T08
 
 **Acceptance criteria:**
 
@@ -466,14 +452,14 @@ custom headers, typed remote errors, safe debug logging, and timeouts.
 - dune runtest
 - Execute fixture-backed xrpc procedure success and failure commands.
 
-### T22: Implement account and session lifecycle
+### T23: Implement account and session lifecycle
 
 **Spec:** [Account and session management](specs/account-and-session-management.md)
 
 **What to build:** Add login, logout, session, refresh, auth checks, service
 auth, app-password, activation, deactivation, and deletion commands.
 
-**Blocked by:** T21
+**Blocked by:** T22
 
 **Acceptance criteria:**
 
@@ -487,14 +473,14 @@ auth, app-password, activation, deactivation, and deletion commands.
 - dune runtest
 - Run isolated mocked session and credential-store lifecycle tests.
 
-### T23: Implement PDS admin account operations
+### T24: Implement PDS admin account operations
 
 **Spec:** [PDS administration](specs/pds-administration.md)
 
 **What to build:** Add PDS admin account create, list, info, update, and
 password-reset operations with admin preflight.
 
-**Blocked by:** T02, T21
+**Blocked by:** T02, T22
 
 **Acceptance criteria:**
 
@@ -506,14 +492,14 @@ password-reset operations with admin preflight.
 
 - dune runtest
 
-### T24: Implement destructive PDS admin controls
+### T25: Implement destructive PDS admin controls
 
 **Spec:** [PDS administration](specs/pds-administration.md)
 
 **What to build:** Add account takedown and delete, admin blob status and purge,
 and invite creation with explicit confirmation behavior.
 
-**Blocked by:** T23
+**Blocked by:** T24
 
 **Acceptance criteria:**
 
@@ -525,14 +511,14 @@ and invite creation with explicit confirmation behavior.
 
 - dune runtest
 
-### T25: Harden account migration
+### T26: Harden account migration
 
 **Spec:** [Account migration](specs/account-migration.md)
 
 **What to build:** Complete migration status, artifact reuse, safe full flow,
 cutover, PLC preview, readiness checks, and fixture coverage.
 
-**Blocked by:** T21
+**Blocked by:** T22
 
 **Acceptance criteria:**
 
@@ -546,14 +532,14 @@ cutover, PLC preview, readiness checks, and fixture coverage.
 
 - Execute the mocked dry-run migration twice and prove artifact reuse.
 
-### T26: Implement repository transfer artifacts
+### T27: Implement repository transfer artifacts
 
 **Spec:** [Repository transfer](specs/repository-transfer.md)
 
 **What to build:** Add remote export, import, describe, latest commit, and safe
 unpack on top of local CAR validation and authenticated transport.
 
-**Blocked by:** T05, T11, T21
+**Blocked by:** T06, T12, T22
 
 **Acceptance criteria:**
 
@@ -566,14 +552,14 @@ unpack on top of local CAR validation and authenticated transport.
 - dune runtest
 - Run binary PDS fixtures for export, resume, import rejection, and unpack.
 
-### T27: Implement blob management
+### T28: Implement blob management
 
 **Spec:** [Blob management](specs/blob-management.md)
 
 **What to build:** Add blob list, download, export, upload, missing, and local
 CID computation with safe resume and authenticated writes.
 
-**Blocked by:** T05, T21
+**Blocked by:** T06, T22
 
 **Acceptance criteria:**
 
@@ -586,14 +572,14 @@ CID computation with safe resume and authenticated writes.
 - dune runtest
 - Run fixture-backed partial export, CID mismatch, upload, and missing-blob checks.
 
-### T28: Add Tempest backup helpers
+### T29: Add Tempest backup helpers
 
 **Spec:** [Tempest backup helpers](specs/tempest-backup.md)
 
 **What to build:** Add Tempest backup create, status, verify, and repo verify in
 a dedicated command and domain module.
 
-**Blocked by:** T21
+**Blocked by:** T22
 
 **Acceptance criteria:**
 
@@ -605,14 +591,14 @@ a dedicated command and domain module.
 
 - dune runtest
 
-### T29: Implement record and PLC writes
+### T30: Implement record and PLC writes
 
 **Spec:** [Record and PLC reads](specs/record-and-plc-reads.md)
 
 **What to build:** Add record create, update, delete, and PLC draft, sign, and
 submit flows with JSON validation and explicit mutation review.
 
-**Blocked by:** T06, T21
+**Blocked by:** T07, T22
 
 **Acceptance criteria:**
 
@@ -630,7 +616,7 @@ submit flows with JSON validation and explicit mutation review.
 **Exit criterion:** Relay, firehose, Lexicon-development, Bluesky, and release
 work are documented, safely bounded, and verified at their stable CLI boundary.
 
-### T30: Complete relay inspection
+### T31: Complete relay inspection
 
 **Spec:** [Relay and firehose operations](specs/relay-and-firehose.md)
 
@@ -649,7 +635,7 @@ host diff behavior.
 
 - dune runtest
 
-### T31: Implement firehose observation
+### T32: Implement firehose observation
 
 **Spec:** [Relay and firehose operations](specs/relay-and-firehose.md)
 
@@ -669,14 +655,14 @@ account-event filtering plus interrupted-stream handling.
 - dune runtest
 - Run a local Tempest firehose smoke command after fixture coverage passes.
 
-### T32: Implement relay administration
+### T33: Implement relay administration
 
 **Spec:** [Relay and firehose operations](specs/relay-and-firehose.md)
 
 **What to build:** Add relay admin reads, request-crawl, takedown, host, and
 domain procedures with authorization and confirmations.
 
-**Blocked by:** T21, T30
+**Blocked by:** T22, T31
 
 **Acceptance criteria:**
 
@@ -688,14 +674,14 @@ domain procedures with authorization and confirmations.
 
 - dune runtest
 
-### T33: Implement local Lexicon development analysis
+### T34: Implement local Lexicon development analysis
 
 **Spec:** [Lexicon development](specs/lexicon-development.md)
 
 **What to build:** Add Lexicon list, parse, validate, lint, status, breaking,
 diff, and DNS-check workflows with file diagnostics.
 
-**Blocked by:** T08
+**Blocked by:** T09
 
 **Acceptance criteria:**
 
@@ -709,14 +695,14 @@ diff, and DNS-check workflows with file diagnostics.
 - dune runtest
 - Run CLI validation against a valid and invalid local Lexicon fixture.
 
-### T34: Implement Lexicon distribution and publishing
+### T35: Implement Lexicon distribution and publishing
 
 **Spec:** [Lexicon development](specs/lexicon-development.md)
 
 **What to build:** Add Lexicon pull, new, publish, and unpublish with safe
 artifact behavior and authenticated confirmation.
 
-**Blocked by:** T21, T33
+**Blocked by:** T22, T34
 
 **Acceptance criteria:**
 
@@ -729,14 +715,14 @@ artifact behavior and authenticated confirmation.
 
 - dune runtest
 
-### T35: Add Bluesky convenience commands
+### T36: Add Bluesky convenience commands
 
 **Spec:** [Bluesky conveniences](specs/bluesky-conveniences.md)
 
 **What to build:** Add preferences export and import plus a validated post
 command using the shared account and record-write foundations.
 
-**Blocked by:** T21, T22, T29
+**Blocked by:** T22, T23, T30
 
 **Acceptance criteria:**
 
@@ -748,7 +734,7 @@ command using the shared account and record-write foundations.
 
 - dune runtest
 
-### T36: Complete broad release documentation and CI
+### T37: Complete broad release documentation and CI
 
 **Spec:** [Documentation and release readiness](specs/documentation-and-release.md)
 
@@ -756,7 +742,7 @@ command using the shared account and record-write foundations.
 examples, generated-reference checks, formatter/build/test CI, and per-feature
 release evidence.
 
-**Blocked by:** T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, T35
+**Blocked by:** T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, T35, T36
 
 **Acceptance criteria:**
 

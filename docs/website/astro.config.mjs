@@ -68,6 +68,7 @@ export default defineConfig({
           label: "Learn",
           collapsed: true,
           items: [
+            { label: "CAR", slug: "learn/car" },
             { label: "goat", slug: "learn/goat" },
             { label: "Jetstream", slug: "learn/jetstream" },
             { label: "Repository event stream", slug: "learn/repository-event-stream" },

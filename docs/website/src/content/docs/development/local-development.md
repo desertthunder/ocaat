@@ -1,6 +1,6 @@
 ---
-title: Local development
-description: Run repeatable local and read-only checks while developing ocaat.
+title: Local Development
+description: Developing & verifying ocaat
 ---
 
 ## Local PDS
@@ -35,13 +35,18 @@ Avoid strict snapshots of remote payloads.
 
 Service metadata and hosted account state can change.
 
-## Local fixtures
+## Fixtures
 
-Automated tests should use deterministic response values and local command
-entrypoints.
+Automated tests use deterministic response values and local command entrypoints.
 
 The output-structure tests in `test/ocaat_test.ml` cover JSON documents, JSON aliases,
 error documents, stderr separation, and redaction without requiring a live PDS.
+
+### Harness
+
+The reusable HTTP fixture harness in `test/cli_fixture.ml` runs the built CLI
+executable as a subprocess, captures sanitized request metadata, and covers JSON,
+binary, malformed, delayed, and remote-error responses on fixed loopback ports.
 
 Run the checks with:
 

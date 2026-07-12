@@ -18,6 +18,7 @@ atproto-read, atproto-research, and atproto-lexicons agent skills.
 ## v0.1 specifications
 
 - [CLI foundations](cli-foundations.md)
+- [Useful Markdown output](useful-markdown-output.md)
 - [Resource resolution and universal get](resource-resolution-and-universal-get.md)
 - [Record and PLC reads](record-and-plc-reads.md)
 - [Lexicon and XRPC reads](lexicon-and-xrpc-reads.md)
