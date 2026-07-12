@@ -1,232 +1,291 @@
 ---
 title: Command reference
-description: _todo_
+description: Current ocaat commands, options, endpoints, and exit codes.
 ---
 
 ## Configuration
 
-_todo_
+Global options are available on commands that render results:
+
+```text
+--format markdown|json|jsonl|raw
+--json
+--pds URL
+--auth TOKEN
+--admin-token TOKEN
+--color auto|always|never
+--quiet | --verbose | --verbosity LEVEL
+```
+
+`OCAAT_PDS`, `OCAAT_AUTH`, and `OCAAT_ADMIN_TOKEN` provide environment
+defaults. Explicit options take precedence.
 
 ## Output formats
 
-_todo_
+Markdown is the default. JSON is selected with either `--format json` or the
+`--json` alias. Successful structured output has the `ocaat.document.v1`
+schema, a command-specific `kind`, the protocol result in `data`, and
+provenance in `meta`.
+
+```sh
+ocaat pds describe https://tempest.desertthunder.dev --format json
+ocaat syntax did check did:plc:oga6ppys7zwxlheuqmcm7dac --json
+```
+
+`--format raw` prints an HTTP payload directly after redaction. JSONL is
+reserved for sequence commands and is rejected by the commands currently in
+this reference.
 
 ## Exit codes
 
-_todo_
+| Code | Meaning |
+| ---: | --- |
+| 0 | success |
+| 64 | usage error |
+| 65 | validation error |
+| 66 | authentication or authorization error |
+| 69 | network error |
+| 70 | remote HTTP/XRPC error |
+| 74 | filesystem error |
+| 130 | interrupted operation |
+
+With JSON selected, errors are versioned `ocaat.error.v1` documents on stderr.
 
 ## Version
 
-_todo_
+```sh
+ocaat version
+```
+
+Prints the CLI version.
 
 ## Account migration
 
-_todo_
+Migration steps use the artifact directory and environment settings documented
+in the account migration guide. Progress is diagnostic output on stderr; a
+completed step renders its result document on stdout.
 
 ### account migrate
 
-_todo_
+All migration steps accept the shared output and safety options. They preserve
+the existing artifact reuse and `--force` behavior.
 
 #### full
 
-_todo_
+Runs the non-activation migration sequence through missing-blob discovery.
 
 #### login-source
 
-_todo_
+Creates and stores the source session artifact.
 
 #### service-auth
 
-_todo_
+Requests and stores service authorization for the migration procedure.
 
 #### source-session-status
 
-_todo_
+Reads the source session status.
 
 #### export-car
 
-_todo_
+Exports the source repository CAR artifact.
 
 #### list-source-blobs
 
-_todo_
+Lists source blob CIDs into an artifact.
 
 #### download-source-blobs
 
-_todo_
+Downloads source blobs listed by the source blob artifact.
 
 #### create-account
 
-_todo_
+Creates the target account artifact.
 
 #### refresh-session
 
-_todo_
+Refreshes the target session artifact.
 
 #### import-repo
 
-_todo_
+Imports the repository CAR into the target PDS and stores the response.
 
 #### status
 
-_todo_
+Reads target migration status.
 
 #### missing-blobs
 
-_todo_
+Lists target blobs that are still missing.
 
 #### upload-missing-blobs
 
-_todo_
+Uploads the missing blobs from the local artifact set.
 
 #### plc-recommended
 
-_todo_
+Fetches the recommended PLC operation.
 
 #### plc-request-token
 
-_todo_
+Requests a PLC operation token.
 
 #### plc-sign
 
-_todo_
+Signs the recommended PLC operation artifact.
 
 #### plc-submit
 
-_todo_
+Submits the signed PLC operation.
 
 #### activate
 
-_todo_
+Activates the target account as the final migration step.
 
 ## PDS management
 
-_todo_
+PDS reads use XRPC endpoints under the selected service URL. A positional host
+may be bare and defaults to HTTPS; `--pds` requires a service URL.
 
 ### pds describe
 
-_todo_
+Calls `com.atproto.server.describeServer` for a host.
+
+```sh
+ocaat pds describe https://tempest.desertthunder.dev --format json
+```
 
 ### pds health
 
-_todo_
+Calls `/xrpc/_health` using `--pds URL`.
 
 ### pds stats
 
-_todo_
+Calls `/xrpc/_stats` using `--pds URL`.
 
 ### pds admin-status
 
-_todo_
+Calls `/xrpc/_admin/status` using `--pds URL` and `--admin-token TOKEN`.
 
 ### pds account list
 
-_todo_
+Calls `com.atproto.sync.listRepos`, follows pagination, and renders a
+`records` document. `--handles` adds best-effort handle evidence for Markdown
+output.
 
 ### pds account status
 
-_todo_
+Calls `com.atproto.sync.getRepoStatus` for the positional DID and `--pds URL`.
+The DID is validated before the request.
 
 ## Key management
 
-_todo_
+Key commands produce local `doctor` documents with the selected format.
 
 ### key generate
 
-_todo_
+Generates a P-256 key by default. Use `--type K-256` for secp256k1.
 
 ### key inspect
 
-_todo_
+Parses a public or secret multibase/DID key and returns curve and encoding
+metadata.
 
 ## Relay support
 
-_todo_
+Relay reads use `--relay-host URL` and identify `relay` as their provenance
+source.
 
 ### relay account list
 
-_todo_
+Calls `com.atproto.sync.listRepos` or the collection-filtered equivalent and
+returns a `records` document.
 
 ### relay account status
 
-_todo_
+Calls `com.atproto.sync.getRepoStatus` for a validated DID.
 
 ### relay host list
 
-_todo_
+Calls `com.atproto.sync.listHosts` and returns a `records` document.
 
 ### relay host status
 
-_todo_
+Calls `com.atproto.sync.getHostStatus` for the supplied hostname.
 
 ## Tempest integration
 
-_todo_
+These commands are safe helpers for Tempest-specific workflows.
 
 ### tempest migration-plan
 
-_todo_
+Prints the ordered migration plan. It is a human-facing plan rather than a
+network result document.
 
 ## Identifier tools
 
-_todo_
+Syntax checks are local and render `doctor` documents on success. Validation
+failures keep the validation exit code and write diagnostics to stderr.
 
 ### syntax handle check
 
-_todo_
+Validates an AT Protocol handle.
 
 ### syntax did check
 
-_todo_
+Validates a DID.
 
 ### syntax nsid check
 
-_todo_
+Validates an NSID.
 
 ### syntax at-uri check
 
-_todo_
+Validates an AT URI.
 
 ### syntax rkey check
 
-_todo_
+Validates a record key.
 
 ### syntax cid check
 
-_todo_
+Validates a CID.
 
 ### syntax tid check
 
-_todo_
+Validates a TID.
 
 ### syntax tid generate
 
-_todo_
+Generates a TID.
 
 ### syntax datetime now
 
-_todo_
+Prints the current AT Protocol datetime.
 
 ### syntax datetime check
 
-_todo_
+Validates an AT Protocol datetime.
 
 ### syntax language check
 
-_todo_
+Validates an ISO-style language tag.
 
 ### syntax url check
 
-_todo_
+Validates an HTTP or HTTPS service URL and rejects credentials, queries,
+fragments, and non-root paths.
 
 ### syntax artifact-path check
 
-_todo_
+Validates a local artifact path before filesystem work.
 
 ## XRPC queries
 
-_todo_
+XRPC queries are read-only GET requests and return a `pds` document.
 
 ### xrpc query
 
-_todo_
+Calls a validated method NSID against `--pds URL`. Repeated `--param K=V`
+options become URL query parameters. Procedures are outside this command's
+read-only scope.

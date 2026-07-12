@@ -1,48 +1,60 @@
 open Cmdliner
+(** Key inspection and generation commands using the shared renderer. *)
+
 open Cmdliner.Term.Syntax
 
-let print_generated ~terse key =
-  if terse then Fmt.pr "%s@." key.Key.secret_multibase
-  else (
-    Fmt.pr "Key Type: %s@." (Key.kind_type key.kind);
-    Fmt.pr
-      "Secret Key (Multibase Syntax): save this securely (eg, add to password \
-       manager)@.";
-    Fmt.pr "\t%s@." key.secret_multibase;
-    Fmt.pr
-      "Public Key (DID Key Syntax): share or publish this (eg, in DID \
-       document)@.";
-    Fmt.pr "\t%s@." key.public_did_key)
+(** Convert generated key metadata to a local result document. *)
+let generated_document (key : Key.generated) =
+  Document.make ~source:"local" ~endpoint:"local" ~kind:"doctor"
+    (`Assoc
+       [
+         ("operation", `String "generate");
+         ("type", `String (Key.kind_type key.kind));
+         ("secretMultibase", `String key.secret_multibase);
+         ("publicDidKey", `String key.public_did_key);
+       ])
 
-let generate kind terse context =
+(** Convert inspected key metadata to a local result document. *)
+let inspected_document (key : Key.inspected) =
+  let fields =
+    [
+      ("operation", `String "inspect");
+      ("type", `String (Key.kind_type key.kind));
+      ( "encoding",
+        `String
+          (match key.encoding with
+          | `Multibase -> "multibase"
+          | `Did_key -> "did-key") );
+      ("multibase", `String key.multibase);
+    ]
+  in
+  let fields =
+    match key.did_key with
+    | None -> fields
+    | Some value -> fields @ [ ("didKey", `String value) ]
+  in
+  Document.make ~source:"local" ~endpoint:"local" ~kind:"doctor" (`Assoc fields)
+
+(** Generate a key and render its local result document. *)
+let generate kind _terse context =
   match Key.generate kind with
   | Error reason ->
-      Output.validation_error ~json:context.Cli_context.json
+      Output.validation_error ~format:context.Cli_context.format
         ("key generation failed: " ^ reason)
   | Ok key ->
-      print_generated ~terse key;
+      Renderer.print_stdout
+        (Renderer.document context.Cli_context.format (generated_document key));
       0
 
+(** Inspect a public or secret key and render its metadata. *)
 let inspect value context =
   match Key.inspect value with
   | Error reason ->
-      Output.validation_error ~json:context.Cli_context.json
+      Output.validation_error ~format:context.Cli_context.format
         ("invalid key: " ^ reason)
   | Ok key ->
-      Fmt.pr "Type: %s@." (Key.kind_type key.kind);
-      Fmt.pr "Encoding: %s@."
-        (match key.encoding with
-        | `Multibase -> "multibase"
-        | `Did_key -> "DID Key");
-      (match key.kind with
-      | P256_public | K256_public ->
-          Option.iter (Fmt.pr "As DID Key: %s@.") key.did_key;
-          Fmt.pr "As Multibase: %s@." key.multibase
-      | P256_private | K256_private -> (
-          Fmt.pr "Secret Key (Multibase Syntax): %s@." key.multibase;
-          match key.did_key with
-          | Some did_key -> Fmt.pr "Public Key (DID Key Syntax): %s@." did_key
-          | None -> Fmt.pr "Public Key (DID Key Syntax): unavailable@."));
+      Renderer.print_stdout
+        (Renderer.document context.Cli_context.format (inspected_document key));
       0
 
 let inspect_cmd =

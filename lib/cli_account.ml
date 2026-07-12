@@ -1,19 +1,32 @@
+(** Account migration commands and their document-backed results. *)
+
 open Cmdliner
 open Cmdliner.Term.Syntax
 
+(** Run one migration step and render its artifact result. *)
 let run_migrate step artifact_dir context =
   match Migration.settings ?artifact_dir () with
   | Error reason ->
-      Output.validation_error ~json:context.Cli_context.json reason
+      Output.validation_error ~format:context.Cli_context.format reason
   | Ok settings -> (
-      let progress = Output.Progress.make ~json:context.json in
+      let progress = Output.Progress.make ~format:context.Cli_context.format in
       match
         Lwt_main.run
           (Migration.run ~force:context.force ~progress step settings)
       with
-      | Error reason -> Output.remote_error ~json:context.json reason
+      | Error reason ->
+          Output.remote_error ~format:context.Cli_context.format reason
       | Ok json ->
-          Migration.log_json (Migration.step_name step) json;
+          let document =
+            Document.make ~source:"local" ~endpoint:settings.artifact_dir
+              ~kind:"doctor"
+              (`Assoc
+                 [
+                   ("step", `String (Migration.step_name step)); ("result", json);
+                 ])
+          in
+          Renderer.print_stdout
+            (Renderer.document context.Cli_context.format document);
           Output.Exit_code.ok)
 
 let artifact_dir_arg =

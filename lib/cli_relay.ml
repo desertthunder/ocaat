@@ -1,4 +1,6 @@
 open Cmdliner
+(** Relay read commands and their document renderers. *)
+
 open Cmdliner.Term.Syntax
 
 let relay_arg =
@@ -8,68 +10,86 @@ let relay_arg =
     & opt string "https://bsky.network"
     & info [ "relay-host" ] ~docv:"URL" ~doc)
 
-let print_json_line json = Output.print_json_value json
-
-let print_accounts ~json accounts =
-  List.iter
-    (fun account ->
-      if json then print_json_line account
-      else
-        let did =
-          Relay.string_field "did" account |> Option.value ~default:""
-        in
-        Fmt.pr "%s\t%s\t%s@." did
-          (Relay.repo_status_text account)
-          (Relay.rev_text account))
-    accounts
-
-let print_hosts ~json hosts =
-  List.iter
-    (fun host ->
-      if json then print_json_line host
-      else
-        Fmt.pr "%s\t%s\t%s\t%s@." (Relay.hostname_text host)
-          (Relay.host_status_text host)
-          (Relay.account_count_text host)
-          (Relay.seq_text host))
-    hosts
-
+(** Fetch and render accounts indexed by a relay. *)
 let account_list relay collection context =
-  match
-    Lwt_main.run
-      (Relay.list_accounts ?auth:context.Cli_context.auth ?collection relay)
-  with
-  | Error response -> Output.print_http_response ~json:context.json response
-  | Ok accounts ->
-      print_accounts ~json:context.json accounts;
-      0
+  match Output.Preflight.require_service_url "relay URL" relay with
+  | Error reason ->
+      Output.validation_error ~format:context.Cli_context.format reason
+  | Ok relay -> (
+      match
+        Lwt_main.run
+          (Relay.list_accounts ?auth:context.Cli_context.auth ?collection relay)
+      with
+      | Error response ->
+          Output.print_http_response ~kind:"records" ~source:"relay"
+            ~endpoint:(Relay.list_repos_url ?collection relay)
+            ~format:context.Cli_context.format response
+      | Ok accounts ->
+          let document =
+            Document.make ~source:"relay"
+              ~endpoint:(Relay.list_repos_url ?collection relay)
+              ~kind:"records" (`List accounts)
+          in
+          Renderer.print_stdout
+            (Renderer.document context.Cli_context.format document);
+          0)
 
+(** Fetch and render the relay's status for one DID. *)
 let account_status relay did context =
-  match
-    Lwt_main.run
-      (Relay.account_status ?auth:context.Cli_context.auth ~relay ~did ())
-  with
+  match Output.Preflight.require_service_url "relay URL" relay with
   | Error reason ->
-      Output.validation_error ~json:context.Cli_context.json reason
-  | Ok response -> Output.print_http_response ~json:context.json response
+      Output.validation_error ~format:context.Cli_context.format reason
+  | Ok relay -> (
+      match
+        Lwt_main.run
+          (Relay.account_status ?auth:context.Cli_context.auth ~relay ~did ())
+      with
+      | Error reason ->
+          Output.validation_error ~format:context.Cli_context.format reason
+      | Ok response ->
+          Output.print_http_response ~kind:"pds" ~source:"relay"
+            ~endpoint:(Relay.repo_status_url relay did)
+            ~did ~format:context.Cli_context.format response)
 
+(** Fetch and render the relay's indexed host list. *)
 let host_list relay context =
-  match
-    Lwt_main.run (Relay.list_hosts ?auth:context.Cli_context.auth relay)
-  with
-  | Error response -> Output.print_http_response ~json:context.json response
-  | Ok hosts ->
-      print_hosts ~json:context.json hosts;
-      0
-
-let host_status relay hostname context =
-  match
-    Lwt_main.run
-      (Relay.host_status ?auth:context.Cli_context.auth ~relay ~hostname ())
-  with
+  match Output.Preflight.require_service_url "relay URL" relay with
   | Error reason ->
-      Output.validation_error ~json:context.Cli_context.json reason
-  | Ok response -> Output.print_http_response ~json:context.json response
+      Output.validation_error ~format:context.Cli_context.format reason
+  | Ok relay -> (
+      match
+        Lwt_main.run (Relay.list_hosts ?auth:context.Cli_context.auth relay)
+      with
+      | Error response ->
+          Output.print_http_response ~kind:"records" ~source:"relay"
+            ~endpoint:(Relay.list_hosts_url relay)
+            ~format:context.Cli_context.format response
+      | Ok hosts ->
+          let document =
+            Document.make ~source:"relay"
+              ~endpoint:(Relay.list_hosts_url relay)
+              ~kind:"records" (`List hosts)
+          in
+          Renderer.print_stdout
+            (Renderer.document context.Cli_context.format document);
+          0)
+
+(** Fetch and render the relay's status for one upstream hostname. *)
+let host_status relay hostname context =
+  match Output.Preflight.require_service_url "relay URL" relay with
+  | Error reason ->
+      Output.validation_error ~format:context.Cli_context.format reason
+  | Ok relay -> (
+      match
+        Lwt_main.run
+          (Relay.host_status ?auth:context.Cli_context.auth ~relay ~hostname ())
+      with
+      | Error reason ->
+          Output.validation_error ~format:context.Cli_context.format reason
+      | Ok response ->
+          Output.print_http_response ~kind:"pds" ~source:"relay"
+            ~endpoint:(Relay.host_status_url relay hostname)
+            ~format:context.Cli_context.format response)
 
 let account_list_cmd =
   let collection =

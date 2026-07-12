@@ -320,7 +320,7 @@ let json_response (response : Http.response) =
       Error (Printf.sprintf "HTTP %d returned non-JSON body" response.status)
 
 let log_json label json =
-  Fmt.pr "%s: %s@." label (Yojson.Safe.to_string (Output.redact_json json))
+  Fmt.epr "%s: %s@." label (Yojson.Safe.to_string (Output.redact_json json))
 
 let get_json ?auth url =
   let open Lwt.Syntax in

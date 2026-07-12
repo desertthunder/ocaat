@@ -1,16 +1,30 @@
 open Cmdliner
+(** Local AT Protocol syntax checks rendered through the shared result contract.
+*)
+
 module At_syntax = Syntax
 open Cmdliner.Term.Syntax
 module Log = (val Logs.src_log (Logs.Src.create "ocaat.syntax") : Logs.LOG)
 
+(** Validate one syntax value and render the result as a doctor document. *)
 let check kind value context =
   Log.debug (fun m -> m "checking %s syntax for %S" kind value);
   match At_syntax.validate kind value with
   | At_syntax.Valid ->
-      Fmt.pr "valid %s: %s@." kind value;
+      let document =
+        Document.make ~source:"local" ~endpoint:"local" ~kind:"doctor"
+          (`Assoc
+             [
+               ("valid", `Bool true);
+               ("type", `String kind);
+               ("value", `String value);
+             ])
+      in
+      Renderer.print_stdout
+        (Renderer.document context.Cli_context.format document);
       0
   | At_syntax.Invalid reason ->
-      Output.validation_error ~json:context.Cli_context.json
+      Output.validation_error ~format:context.Cli_context.format
         (Printf.sprintf "invalid %s: %s (%s)" kind value reason)
 
 let check_cmd kind =
@@ -28,26 +42,39 @@ let check_cmd kind =
   in
   Cmd.v info term
 
+(** Cmdliner command that generates and documents a TID. *)
 let tid_generate_cmd =
   let term =
-    Cli_context.with_setup
+    Cli_context.with_context
       Term.(
-        const (fun () ->
-            Fmt.pr "%s@." (At_syntax.generate_tid ());
-            0)
-        $ const ())
+        const (fun context ->
+            let value = At_syntax.generate_tid () in
+            let document =
+              Document.make ~source:"local" ~endpoint:"local" ~kind:"doctor"
+                (`Assoc [ ("type", `String "tid"); ("value", `String value) ])
+            in
+            Renderer.print_stdout
+              (Renderer.document context.Cli_context.format document);
+            0))
   in
   let info = Cmd.info "generate" ~doc:"Generate a TID." in
   Cmd.v info term
 
+(** Cmdliner command that emits the current AT Protocol datetime. *)
 let datetime_now_cmd =
   let term =
-    Cli_context.with_setup
+    Cli_context.with_context
       Term.(
-        const (fun () ->
-            Fmt.pr "%s@." (At_syntax.datetime_now ());
-            0)
-        $ const ())
+        const (fun context ->
+            let value = At_syntax.datetime_now () in
+            let document =
+              Document.make ~source:"local" ~endpoint:"local" ~kind:"doctor"
+                (`Assoc
+                   [ ("type", `String "datetime"); ("value", `String value) ])
+            in
+            Renderer.print_stdout
+              (Renderer.document context.Cli_context.format document);
+            0))
   in
   let info = Cmd.info "now" ~doc:"Print the current AT Protocol datetime." in
   Cmd.v info term

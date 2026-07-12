@@ -1,5 +1,6 @@
 (** Output helpers shared by CLI command modules. *)
 
+(** Stable process exit categories used by command modules. *)
 module Exit_code = struct
   let ok = 0
   let usage = 64
@@ -11,6 +12,7 @@ module Exit_code = struct
   let interrupted = 130
 end
 
+(** Error categories mapped to the stable exit codes above. *)
 type error_kind =
   | Usage
   | Validation
@@ -38,155 +40,80 @@ let exit_code_of_error_kind = function
   | Filesystem -> Exit_code.filesystem
   | Interrupted -> Exit_code.interrupted
 
-let redacted = "[REDACTED]"
-let lowercase_ascii value = String.lowercase_ascii value
+(** Alias used by shared output functions. *)
+type format = Format.t
 
-let contains ~needle value =
-  let needle = lowercase_ascii needle in
-  let value = lowercase_ascii value in
-  let needle_len = String.length needle in
-  let value_len = String.length value in
-  let rec loop index =
-    index + needle_len <= value_len
-    && (String.sub value index needle_len = needle || loop (index + 1))
-  in
-  needle_len = 0 || loop 0
+(** Shared redaction aliases retained for command and test modules. *)
+let redacted = Redaction.redacted
 
-let sensitive_field_name name =
-  let name = lowercase_ascii name in
-  List.exists
-    (fun needle -> contains ~needle name)
-    [
-      "accessjwt";
-      "refreshjwt";
-      "password";
-      "apptoken";
-      "app_password";
-      "apppassword";
-      "serviceauth";
-      "service_auth";
-      "admintoken";
-      "admin_token";
-      "authorization";
-      "token";
-    ]
+(** Redact a JSON value before rendering it. *)
+let redact_json = Redaction.json
 
-let rec redact_json = function
-  | `Assoc fields ->
-      `Assoc
-        (List.map
-           (fun (name, value) ->
-             if sensitive_field_name name then (name, `String redacted)
-             else (name, redact_json value))
-           fields)
-  | `List values -> `List (List.map redact_json values)
-  | value -> value
+(** Redact text before placing it in a diagnostic. *)
+let redact_text = Redaction.text
 
-let redact_text value =
-  let redact_authorization line =
-    let prefix = "authorization:" in
-    if
-      String.length line >= String.length prefix
-      && lowercase_ascii (String.sub line 0 (String.length prefix)) = prefix
-    then "Authorization: Bearer " ^ redacted
-    else line
-  in
-  value |> String.split_on_char '\n'
-  |> List.map redact_authorization
-  |> String.concat "\n"
+(** Redact a response body before displaying or reporting it. *)
+let redact_body = Redaction.body
 
-let redact_body body =
-  match Yojson.Safe.from_string body with
-  | json -> Yojson.Safe.to_string (redact_json json)
-  | exception Yojson.Json_error _ -> redact_text body
-
-let error_json ?status kind message =
-  let fields =
-    [
-      ("kind", `String (string_of_error_kind kind));
-      ("message", `String (redact_text message));
-    ]
-  in
-  let fields =
-    match status with
-    | None -> fields
-    | Some status -> ("status", `Int status) :: fields
-  in
-  `Assoc [ ("error", `Assoc (List.rev fields)) ]
-
-let print_error ?status ~json kind message =
+(** Sanitize and print an error, returning its stable process exit code. *)
+let print_error ?status ~format kind message =
   let message = redact_text message in
-  (if json then
-     Fmt.epr "%s@." (Yojson.Safe.to_string (error_json ?status kind message))
-   else
-     let status_text =
-       match status with
-       | None -> ""
-       | Some status -> Printf.sprintf " (HTTP %d)" status
-     in
-     Fmt.epr "error: %s%s: %s@." (string_of_error_kind kind) status_text message);
+  let error =
+    Error_document.make ?status ~kind:(string_of_error_kind kind) ~message ()
+  in
+  Renderer.print_stderr (Renderer.error format error);
   exit_code_of_error_kind kind
 
-let usage_error ~json message = print_error ~json Usage message
-let validation_error ~json message = print_error ~json Validation message
-let auth_error ~json message = print_error ~json Auth message
-let network_error ~json message = print_error ~json Network message
+let usage_error ~format message = print_error ~format Usage message
+let validation_error ~format message = print_error ~format Validation message
+let auth_error ~format message = print_error ~format Auth message
+let network_error ~format message = print_error ~format Network message
 
-let remote_error ?status ~json message =
-  print_error ?status ~json Remote message
+let remote_error ?status ~format message =
+  print_error ?status ~format Remote message
 
-let filesystem_error ~json message = print_error ~json Filesystem message
-let interrupted_error ~json message = print_error ~json Interrupted message
+let filesystem_error ~format message = print_error ~format Filesystem message
+let interrupted_error ~format message = print_error ~format Interrupted message
 
-(** Print a response body, adding a trailing newline if needed. *)
-let print_body body =
-  let body = redact_body body in
-  Fmt.pr "%s%!" body;
-  if not (String.ends_with ~suffix:"\n" body) then Fmt.pr "@."
-
-(** Print a response body as JSON when it parses, preserving raw text otherwise.
-*)
-let print_json ~compact body =
-  match Yojson.Safe.from_string body with
-  | json ->
-      let json = redact_json json in
-      let rendered =
-        if compact then Yojson.Safe.to_string json
-        else Yojson.Safe.pretty_to_string json
-      in
-      Fmt.pr "%s@." rendered
-  | exception Yojson.Json_error _ -> print_body body
-
-let print_json_value ?(compact = true) json =
-  let json = redact_json json in
-  let rendered =
-    if compact then Yojson.Safe.to_string json
-    else Yojson.Safe.pretty_to_string json
+let message_of_http_response ~endpoint (response : Http.response) =
+  let detail =
+    if response.body = "" then "empty response body"
+    else redact_body response.body
   in
-  Fmt.pr "%s@." rendered
-
-let message_of_http_response (response : Http.response) =
-  if response.body = "" then "empty response body"
-  else redact_body response.body
+  endpoint ^ ": " ^ detail
 
 (** Print an HTTP response and return a process exit code.
 
     Successful responses are written to stdout.
 
     Unsuccessful responses use the standard CLI error envelope. *)
-let print_http_response ~json (response : Http.response) =
+(** Render an HTTP response as a document, raw payload, or sanitized error. *)
+let print_http_response ?(kind = "pds") ?(source = "pds") ?did ?pds ~format
+    ~endpoint (response : Http.response) =
   if response.Http.status >= 200 && response.status < 300 then (
-    print_json ~compact:json response.body;
-    Exit_code.ok)
+    match format with
+    | Format.Raw ->
+        Renderer.print_stdout (Renderer.raw response.body);
+        Exit_code.ok
+    | (Format.Markdown | Format.Json | Format.Jsonl) as format ->
+        let data =
+          match Yojson.Safe.from_string response.body with
+          | json -> json
+          | exception Yojson.Json_error _ -> `String response.body
+        in
+        let document = Document.make ?did ?pds ~source ~endpoint ~kind data in
+        Renderer.print_stdout (Renderer.document format document);
+        Exit_code.ok)
   else if response.status = 0 then
-    network_error ~json (message_of_http_response response)
+    network_error ~format (message_of_http_response ~endpoint response)
   else if response.status = 401 || response.status = 403 then
-    print_error ~status:response.status ~json Auth
-      (message_of_http_response response)
+    print_error ~status:response.status ~format Auth
+      (message_of_http_response ~endpoint response)
   else
-    remote_error ~status:response.status ~json
-      (message_of_http_response response)
+    remote_error ~status:response.status ~format
+      (message_of_http_response ~endpoint response)
 
+(** Validation helpers that run before network or filesystem work. *)
 module Preflight = struct
   let require_value name = function
     | Some value when String.trim value <> "" -> Ok value
@@ -195,6 +122,19 @@ module Preflight = struct
   let require_pds = require_value "PDS URL"
   let require_auth = require_value "auth token"
   let require_admin_auth = require_value "admin token"
+
+  (** Validate and normalize a service URL before making a request. *)
+  let require_service_url name value =
+    let value =
+      if
+        String.starts_with ~prefix:"http://" value
+        || String.starts_with ~prefix:"https://" value
+      then value
+      else "https://" ^ value
+    in
+    match Syntax.validate_service_url value with
+    | Syntax.Valid -> Ok (Http.normalize_base_url value)
+    | Syntax.Invalid reason -> Error (name ^ ": " ^ reason)
 
   let require_did_or_handle value =
     match (Syntax.validate_did value, Syntax.validate_handle value) with
@@ -227,6 +167,7 @@ module Preflight = struct
     else Error ("artifact already exists: " ^ path)
 end
 
+(** Confirmation helper for commands that may change state. *)
 module Confirm = struct
   let prompt ?(yes = false) message =
     if yes then Ok true
@@ -240,6 +181,7 @@ module Confirm = struct
       | exception End_of_file -> Error "confirmation input ended")
 end
 
+(** Safe artifact path and write helpers. *)
 module Artifact = struct
   type state = Missing | File | Directory
 
@@ -276,10 +218,13 @@ module Artifact = struct
 end
 
 module Progress = struct
-  type t = { json : bool }
+  (** Progress output is always diagnostic output and therefore uses stderr. *)
+  type t = { format : format }
 
-  let make ~json = { json }
+  (** Create a progress renderer using the command's selected format. *)
+  let make ~format = { format }
 
+  (** Emit one human or JSON progress event. *)
   let event t ?current ?total label fields =
     let fields =
       ("event", `String label)
@@ -294,10 +239,14 @@ module Progress = struct
       | Some value -> ("total", `Int value) :: fields
     in
     let json = redact_json (`Assoc (List.rev fields)) in
-    if t.json then Fmt.pr "%s@." (Yojson.Safe.to_string json)
+    if Format.is_json t.format then
+      Renderer.print_stderr (Yojson.Safe.to_string json ^ "\n")
     else
       match (current, total) with
-      | Some current, Some total -> Fmt.epr "%s %d/%d@." label current total
-      | Some current, None -> Fmt.epr "%s %d@." label current
-      | None, _ -> Fmt.epr "%s@." label
+      | Some current, Some total ->
+          Renderer.print_stderr
+            (Printf.sprintf "%s %d/%d\n" label current total)
+      | Some current, None ->
+          Renderer.print_stderr (Printf.sprintf "%s %d\n" label current)
+      | None, _ -> Renderer.print_stderr (label ^ "\n")
 end

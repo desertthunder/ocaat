@@ -9,12 +9,17 @@
   Cli_relay
   Cli_syntax
   Cli_xrpc
+  Document
+  Error_document
+  Format
   Http
   Key
   Migration
   Output
   Pds
   Relay
+  Redaction
+  Renderer
   Syntax
   Xrpc)
  (libraries

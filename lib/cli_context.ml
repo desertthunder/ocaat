@@ -4,7 +4,7 @@ type verbosity = Quiet | Error | Warning | Info | Debug
 type color = Auto | Always | Never
 
 type t = {
-  json : bool;
+  format : Format.t;
   pds : string option;
   auth : string option;
   admin_token : string option;
@@ -12,6 +12,7 @@ type t = {
   dry_run : bool;
   force : bool;
 }
+(** Global settings shared by every command renderer and request path. *)
 
 let level_of_verbosity = function
   | Quiet -> None
@@ -25,6 +26,7 @@ let inferred_verbosity verbose_count =
   else if verbose_count = 1 then Info
   else Debug
 
+(** Configure color and the stderr log reporter for one CLI invocation. *)
 let setup_log ~style_renderer ~level =
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level level;
@@ -83,6 +85,19 @@ let quiet_arg =
   let doc = "Suppress log output." in
   Arg.(value & flag & info [ "q"; "quiet" ] ~doc)
 
+(** Global output format selector. *)
+let format_arg =
+  let open Cmdliner in
+  let doc =
+    "Output format: $(docv). Markdown is the default; JSONL is reserved for \
+     sequence commands."
+  in
+  Arg.(
+    value
+    & opt (enum Format.all) Format.Markdown
+    & info [ "format" ] ~docv:"FORMAT" ~doc)
+
+(** Convenience alias for selecting [Format.Json]. *)
 let json_arg =
   let open Cmdliner in
   let doc =
@@ -134,8 +149,9 @@ let force_arg =
   in
   Arg.(value & flag & info [ "force"; "f" ] ~doc)
 
-let setup_and_make_context style_renderer quiet verbose verbosity json pds auth
-    admin_token yes dry_run force =
+(** Resolve global flags into the immutable command context. *)
+let setup_and_make_context style_renderer quiet verbose verbosity format json
+    pds auth admin_token yes dry_run force =
   let verbosity =
     if quiet then Quiet
     else
@@ -144,13 +160,16 @@ let setup_and_make_context style_renderer quiet verbose verbosity json pds auth
       | None -> inferred_verbosity (List.length verbose)
   in
   setup_log ~style_renderer ~level:(level_of_verbosity verbosity);
-  { json; pds; auth; admin_token; yes; dry_run; force }
+  let format = if json then Format.Json else format in
+  { format; pds; auth; admin_token; yes; dry_run; force }
 
+(** Cmdliner term that assembles global settings and configures logging. *)
 let context =
   let+ style_renderer = style_renderer_arg
   and+ quiet = quiet_arg
   and+ verbose = verbose_arg
   and+ verbosity = verbosity_arg
+  and+ format = format_arg
   and+ json = json_arg
   and+ pds = pds_arg
   and+ auth = auth_arg
@@ -158,13 +177,18 @@ let context =
   and+ yes = yes_arg
   and+ dry_run = dry_run_arg
   and+ force = force_arg in
-  setup_and_make_context style_renderer quiet verbose verbosity json pds auth
-    admin_token yes dry_run force
+  setup_and_make_context style_renderer quiet verbose verbosity format json pds
+    auth admin_token yes dry_run force
 
+(** Run a command with global context, rejecting unsupported JSONL output. *)
 let with_context term =
   let+ context = context and+ run = term in
-  run context
+  if context.format = Format.Jsonl then
+    Output.usage_error ~format:context.format
+      "--format jsonl is reserved for sequence commands"
+  else run context
 
+(** Configure global logging for commands without a context-aware renderer. *)
 let with_setup term =
   let+ _context = context and+ result = term in
   result

@@ -1,23 +1,40 @@
 open Cmdliner
+(** Generic read-only XRPC query command and document renderer. *)
+
 open Cmdliner.Term.Syntax
 
 (** Run [xrpc query] with the shared CLI context. *)
 let query method_ params context =
   match context.Cli_context.pds with
   | None ->
-      Output.usage_error ~json:context.Cli_context.json
+      Output.usage_error ~format:context.Cli_context.format
         "xrpc query requires --pds <url>"
   | Some pds -> (
-      match Xrpc.parse_params params with
-      | Error reason -> Output.validation_error ~json:context.json reason
-      | Ok params -> (
-          match
-            Lwt_main.run
-              (Xrpc.query ?auth:context.auth ~pds ~method_ ~params ())
-          with
-          | Error reason -> Output.validation_error ~json:context.json reason
-          | Ok response ->
-              Output.print_http_response ~json:context.json response))
+      match Output.Preflight.require_service_url "PDS URL" pds with
+      | Error reason ->
+          Output.validation_error ~format:context.Cli_context.format reason
+      | Ok pds -> (
+          match Xrpc.parse_params params with
+          | Error reason ->
+              Output.validation_error ~format:context.Cli_context.format reason
+          | Ok params -> (
+              match
+                Lwt_main.run
+                  (Xrpc.query ?auth:context.auth ~pds ~method_ ~params ())
+              with
+              | Error reason ->
+                  Output.validation_error ~format:context.Cli_context.format
+                    reason
+              | Ok response -> (
+                  match Xrpc.query_url ~pds ~method_ ~params with
+                  | Error reason ->
+                      Output.validation_error ~format:context.Cli_context.format
+                        reason
+                  | Ok endpoint ->
+                      Output.print_http_response ~kind:"pds" ~source:"pds"
+                        ~endpoint
+                        ~pds:(Http.normalize_base_url pds)
+                        ~format:context.Cli_context.format response))))
 
 (** Cmdliner command for [xrpc query]. *)
 let query_cmd =
