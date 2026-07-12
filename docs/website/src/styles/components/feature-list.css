@@ -1,0 +1,54 @@
+.card-grid {
+	grid-template-columns: 1fr;
+	gap: 0;
+	margin-block: 2.5rem 1rem;
+	border-block: 1px solid var(--melange-border);
+}
+
+.card-grid .card {
+	display: grid;
+	grid-template-columns: minmax(12rem, 0.34fr) 1fr;
+	align-items: center;
+	gap: clamp(1.5rem, 5vw, 4rem);
+	min-height: 7.5rem;
+	padding: clamp(1.25rem, 2.2vw, 2rem);
+	border: 0;
+	border-top: 1px solid var(--melange-border);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	transition: background-color 160ms ease;
+}
+
+.card-grid .card:first-child {
+	border-top: 0;
+}
+
+.card-grid .card:hover {
+	background: var(--melange-row-hover);
+	transform: none;
+}
+
+.card-grid .card .title {
+	font-family: 'Aleo Variable', Georgia, serif;
+	font-weight: 650;
+	letter-spacing: -0.0125em;
+}
+
+.card-grid .card .body {
+	color: var(--melange-muted);
+}
+
+.card-grid .card .icon {
+	border-radius: 0.2rem;
+	background-color: color-mix(in srgb, var(--sl-card-bg) 72%, transparent);
+}
+
+@media (max-width: 49.99rem) {
+	.card-grid .card {
+		grid-template-columns: 1fr;
+		align-items: start;
+		gap: 0.7rem;
+		min-height: 0;
+	}
+}

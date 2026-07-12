@@ -1,0 +1,63 @@
+.header {
+    border-bottom-color: var(--melange-border);
+    background-color: color-mix(in srgb, var(--melange-bg) 88%, transparent);
+    backdrop-filter: blur(18px);
+}
+
+.site-title {
+    font-family: "Aleo Variable", Georgia, serif;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--melange-fg);
+    display: flex;
+    justify-items: center;
+    gap: 0.25rem;
+    line-height: 1;
+}
+
+.site-title::before {
+    content: "@";
+    font-family: "Aleo Variable", Georgia, serif;
+    font-size: 1.125em;
+    color: var(--melange-orange);
+}
+
+.site-title::after {
+    content: ".";
+    font-family: "Aleo Variable", Georgia, serif;
+    font-size: 1.125em;
+    color: var(--melange-orange);
+}
+
+.social-icons::after {
+    border-inline-end-color: var(--melange-border-strong) !important;
+}
+
+.content-panel {
+    border-color: var(--melange-border);
+}
+
+.sidebar-pane {
+    background-color: var(--melange-black);
+    border-inline-end-color: var(--melange-border);
+}
+
+.sidebar-content a {
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.sidebar-content a:hover {
+    color: var(--melange-fg);
+    background: var(--melange-accent-soft);
+}
+
+.sidebar-content a[aria-current="page"] {
+    font-weight: 600;
+    color: var(--melange-orange-bright);
+    background: var(--melange-warm-soft);
+}
+
+.right-sidebar {
+    border-inline-start-color: var(--melange-border);
+}

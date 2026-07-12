@@ -1,0 +1,25 @@
+.sl-markdown-content {
+    font-size: 1.01rem;
+}
+
+.sl-markdown-content > :is(h2, h3) {
+    margin-top: 2.25em;
+}
+
+.sl-markdown-content a {
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 0.08em;
+}
+
+.sl-markdown-content code:not(:where(.not-content *)) {
+    border: 1px solid var(--melange-border);
+    border-radius: 0.25rem;
+    color: var(--melange-orange-bright);
+    background: var(--melange-surface-strong);
+}
+
+.sl-markdown-content pre:not(:where(.not-content *)) {
+    border: 1px solid var(--melange-blue-border);
+    border-radius: 0.375rem;
+    box-shadow: 0.5rem 0.5rem 0 var(--melange-surface-shadow);
+}

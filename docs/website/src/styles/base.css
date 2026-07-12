@@ -1,0 +1,31 @@
+html {
+	color-scheme: dark;
+	background: var(--melange-bg);
+}
+
+html[data-theme='light'] {
+	color-scheme: light;
+}
+
+body {
+	background-color: var(--melange-bg);
+	background-image:
+		radial-gradient(circle at 82% 0%, var(--melange-glow-blue), transparent 26rem),
+		linear-gradient(115deg, var(--melange-glow-warm), transparent 38%);
+}
+
+::selection {
+	color: var(--melange-bg);
+	background: var(--melange-orange-bright);
+}
+
+:focus-visible {
+	outline: 2px solid var(--melange-orange-bright);
+	outline-offset: 4px;
+}
+
+button,
+select,
+input {
+	border-radius: 0.25rem;
+}

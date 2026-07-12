@@ -1,40 +1,65 @@
 ---
-title: Welcome to Starlight
-description: Get started building your docs site with Starlight.
-template: splash # Remove or comment out this line to display the site sidebar on this page.
+title: ocaat
+description: A careful command-line interface for operating an AT Protocol PDS.
+template: splash
 hero:
-  tagline: Congrats on setting up a new Starlight project!
+  tagline: A scriptable CLI for data on the ATmosphere.
   image:
-    file: ../../assets/houston.webp
+    html: |
+      <svg viewBox="0 0 520 360" role="img" aria-label="A terminal window showing an ocaat repository inspection" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+        <rect width="520" height="360" rx="10" fill="var(--melange-bg)"/>
+        <rect x="1" y="1" width="520" height="47" fill="var(--melange-black)"/>
+        <path d="M1 48h518" stroke="var(--melange-panel)"/>
+        <circle cx="28" cy="25" r="5" fill="var(--melange-red)"/><circle cx="46" cy="25" r="5" fill="var(--melange-orange)"/><circle cx="64" cy="25" r="5" fill="var(--melange-green)"/>
+        <text x="90" y="29" fill="var(--melange-muted)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">ocaat — zsh</text>
+        <text x="32" y="89" fill="var(--melange-orange)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14">$</text>
+        <text x="51" y="89" fill="var(--melange-fg)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14">ocaat repo describe</text>
+        <text x="32" y="121" fill="var(--melange-green-bright)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">✓ resolved resource</text>
+        <text x="32" y="143" fill="var(--melange-white)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">did:plc:oga6…7dac  ·  Tempest</text>
+        <path d="M32 171h456" stroke="var(--melange-panel)"/>
+        <text x="32" y="199" fill="var(--melange-muted)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1">RESULT / 01</text>
+        <rect x="32" y="218" width="136" height="74" rx="4" fill="var(--melange-blue-low)" stroke="var(--melange-blue)"/>
+        <rect x="192" y="218" width="136" height="74" rx="4" fill="var(--melange-orange-low)" stroke="var(--melange-orange)"/>
+        <rect x="352" y="218" width="136" height="74" rx="4" fill="var(--melange-green-low)" stroke="var(--melange-green)"/>
+        <text x="48" y="244" fill="var(--melange-blue-bright)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10" letter-spacing="1">IDENTITY</text>
+        <text x="48" y="270" fill="var(--melange-fg)" font-family="Aleo Variable, Georgia, serif" font-size="17">DID / handle</text>
+        <text x="208" y="244" fill="var(--melange-orange-bright)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10" letter-spacing="1">REPOSITORY</text>
+        <text x="208" y="270" fill="var(--melange-fg)" font-family="Aleo Variable, Georgia, serif" font-size="17">CAR / MST</text>
+        <text x="368" y="244" fill="var(--melange-green-bright)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10" letter-spacing="1">PDS</text>
+        <text x="368" y="270" fill="var(--melange-fg)" font-family="Aleo Variable, Georgia, serif" font-size="17">Tempest</text>
+        <text x="32" y="326" fill="var(--melange-cyan)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11">read-only  ·  1 result</text>
+      </svg>
   actions:
-    - text: Example Guide
-      link: /guides/example/
+    - text: Get Started
+      link: /guides/getting-started/
       icon: right-arrow
-    - text: Read the Starlight docs
-      link: https://starlight.astro.build
-      icon: external
+    - text: Manual
+      link: /reference/commands/
+      icon: document
       variant: minimal
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid } from "@astrojs/starlight/components";
 
-## Next steps
+## Operate with intent
 
-<CardGrid stagger>
-	<Card title="Update content" icon="pencil">
-		Edit `src/content/docs/index.mdx` to see this page change.
-	</Card>
-	<Card title="Change page layout" icon="document">
-		Delete `template: splash` in `src/content/docs/index.mdx` to display a
-		sidebar on this page.
-	</Card>
-	<Card title="Add new content" icon="add-document">
-		Add Markdown or MDX files to `src/content/docs` to create new pages.
-	</Card>
-	<Card title="Configure your site" icon="setting">
-		Edit your `sidebar` and other config in `astro.config.mjs`.
-	</Card>
-	<Card title="Read the docs" icon="open-book">
-		Learn more in [the Starlight Docs](https://starlight.astro.build/).
-	</Card>
+<div class="command-strip">
+  <span class="command-strip__prompt">$</span>
+  <code>{"ocaat pds health --pds https://tempest.desertthunder.dev"}</code>
+  <span class="command-strip__status">read-only by default</span>
+</div>
+
+<CardGrid>
+  <Card title="Resolve" icon="magnifier">
+    Turn handles, DIDs, AT-URIs, and URLs into the resource you actually need.
+  </Card>
+  <Card title="Inspect" icon="document">
+    Read PDS health, repositories, records, blobs, PLC history, and XRPC data.
+  </Card>
+  <Card title="Migrate" icon="up-arrow">
+    Move an account into Tempest through explicit, resumable, observable steps.
+  </Card>
+  <Card title="Validate" icon="approve-check-circle">
+    Check AT Protocol identifiers and local CAR, blob, lexicon, and artifact inputs.
+  </Card>
 </CardGrid>
