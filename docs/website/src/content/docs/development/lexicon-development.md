@@ -3,22 +3,22 @@ title: Lexicon development
 description: _todo_
 ---
 
-## Objective
+## Overview
 
 _todo_
 
-## Commands
+## Lexicon files
 
 _todo_
 
-## Requirements
+## Validation
 
 _todo_
 
-## Verification
+## Compatibility
 
 _todo_
 
-## Subsequent planned work
+## Publishing
 
 _todo_

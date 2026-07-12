@@ -3,10 +3,10 @@ title: Account migration hardening
 status: ready
 ---
 
-## Objective
+## Purpose
 
-Make account migration into Tempest explicit, resumable, observable, and safe
-through the existing account migrate command family.
+Make account migration between a source PDS and target PDS explicit, resumable,
+observable, and safe through the existing account migrate command family.
 
 ## Commands
 

@@ -2,7 +2,8 @@
 
 Object Categorical Abstract Authenticated Transfer Command-line Interface
 
-`ocaat` is an OCaml/Dune CLI for operating [my PDS](https://github.com/desertthunder/tempest).
+`ocaat` is an OCaml/Dune CLI for developing with the AT Protocol and managing
+your PDS.
 
 <details>
 <summary>Commands</summary>
@@ -102,10 +103,10 @@ Stable command error exit codes:
 
 ## Account Migration
 
-`ocaat account migrate` ports an account into Tempest as explicit, resumable
-steps. Each step writes an artifact that later steps can reuse. Commands fail
-before network access when required configuration, credentials, or artifacts are
-missing.
+`ocaat account migrate` moves an account between a source PDS and a target PDS
+through explicit, resumable steps. Each step writes an artifact that later steps
+can reuse. Commands fail before network access when required configuration,
+credentials, or artifacts are missing.
 
 <details>
 <summary>Required configuration</summary>

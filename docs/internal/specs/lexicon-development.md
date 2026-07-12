@@ -3,7 +3,7 @@ title: Lexicon development
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Add local Lexicon authoring and compatibility analysis after read-only schema
 resolution has established a trusted inspection path.

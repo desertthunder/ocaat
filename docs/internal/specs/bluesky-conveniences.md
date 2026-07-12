@@ -3,7 +3,7 @@ title: Bluesky conveniences
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Offer a deliberately small set of Bluesky account conveniences once the generic
 account, record, and credential contracts are stable.

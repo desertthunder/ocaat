@@ -3,7 +3,7 @@ title: Repository transfer
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Transfer repository CAR artifacts only through deliberate, resumable operations
 after local CAR inspection is available.

@@ -3,10 +3,10 @@ title: PDS observability
 status: ready
 ---
 
-## Objective
+## Purpose
 
-Give Tempest and compatible PDS operators a concise, read-only health and
-repository-status view with the shared document contract.
+Give PDS operators a concise, read-only health and repository-status view with
+the shared document contract.
 
 ## Commands
 

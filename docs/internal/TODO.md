@@ -440,11 +440,11 @@ reference artifacts from the shared capability registry.
 
 - Run generation twice, compare outputs, then run the CI-style diff check.
 
-## Milestone 3: authenticated operations and Tempest controls
+## Milestone 3: authenticated PDS operations and integrations
 
 **Exit criterion:** Authenticated procedures, account work, migration, repository
-transfer, blobs, and Tempest administration are all explicit, preflighted, and
-fixture-covered.
+transfer, blobs, and PDS administration are all explicit, preflighted, and
+fixture-covered. Tempest-specific capabilities remain isolated integrations.
 
 ### T21: Extend XRPC for procedures and binary transfer
 

@@ -3,7 +3,7 @@ title: Local repository CAR inspection
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Inspect a local AT Protocol repository CAR safely and natively in OCaml, without
 network transfer or dependence on an external implementation.

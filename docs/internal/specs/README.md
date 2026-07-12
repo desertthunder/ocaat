@@ -7,7 +7,8 @@ by goat, and to be useful for PDS operators. Its delivery sequence is:
 
 1. Read-only AT Protocol querying.
 2. Programmatic read-only interfaces for agents and HTTP clients.
-3. Tempest operator controls and broader goat feature parity.
+3. PDS management and broader goat feature parity, with Tempest-specific
+   capabilities treated as integrations.
 
 The first release is complete only when a user can inspect an actor, record,
 PLC identity, Lexicon, PDS, JSONL batch, and local repository CAR through the

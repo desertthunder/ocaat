@@ -3,7 +3,7 @@ title: Command reference
 description: _todo_
 ---
 
-## Global options
+## Configuration
 
 _todo_
 
@@ -15,11 +15,11 @@ _todo_
 
 _todo_
 
-## version
+## Version
 
 _todo_
 
-## account
+## Account migration
 
 _todo_
 
@@ -99,7 +99,7 @@ _todo_
 
 _todo_
 
-## pds
+## PDS management
 
 _todo_
 
@@ -127,7 +127,7 @@ _todo_
 
 _todo_
 
-## key
+## Key management
 
 _todo_
 
@@ -139,7 +139,7 @@ _todo_
 
 _todo_
 
-## relay
+## Relay support
 
 _todo_
 
@@ -159,7 +159,7 @@ _todo_
 
 _todo_
 
-## tempest
+## Tempest integration
 
 _todo_
 
@@ -167,7 +167,7 @@ _todo_
 
 _todo_
 
-## syntax
+## Identifier tools
 
 _todo_
 
@@ -223,7 +223,7 @@ _todo_
 
 _todo_
 
-## xrpc
+## XRPC queries
 
 _todo_
 

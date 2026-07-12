@@ -3,7 +3,7 @@ title: Generated API documentation
 status: planned
 ---
 
-## Objective
+## Purpose
 
 Generate accurate CLI, MCP, and HTTP reference material from one capability
 registry so that released interfaces cannot silently drift from their

@@ -33,6 +33,19 @@
     border-inline-end-color: var(--melange-border-strong) !important;
 }
 
+.social-icons a {
+    color: var(--melange-white);
+}
+
+.social-icons a:hover {
+    color: var(--melange-orange-bright);
+}
+
+.social-icons a:focus-visible {
+    outline: 2px solid var(--melange-orange-bright);
+    outline-offset: 0.25rem;
+}
+
 .content-panel {
     border-color: var(--melange-border);
 }
@@ -60,4 +73,15 @@
 
 .right-sidebar {
     border-inline-start-color: var(--melange-border);
+}
+
+starlight-toc a[aria-current="true"],
+mobile-starlight-toc a[aria-current="true"],
+mobile-starlight-toc a[aria-current="true"]:hover,
+mobile-starlight-toc a[aria-current="true"]:focus {
+    color: var(--melange-orange-bright);
+}
+
+mobile-starlight-toc a[aria-current="true"]::after {
+    background-color: var(--melange-orange-bright);
 }

@@ -3,7 +3,7 @@ title: Read-only MCP server
 status: planned
 ---
 
-## Objective
+## Purpose
 
 Expose the completed read-only CLI capabilities to MCP clients without
 duplicating protocol logic, widening write authority, or creating an alternate

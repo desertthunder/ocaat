@@ -3,22 +3,22 @@ title: Generated API documentation
 description: _todo_
 ---
 
-## Objective
+## Overview
 
 _todo_
 
-## Outputs
+## Generated references
 
 _todo_
 
-## Requirements
+## Source data
 
 _todo_
 
-## Verification
+## Publishing
 
 _todo_
 
-## Subsequent planned work
+## Reference
 
 _todo_

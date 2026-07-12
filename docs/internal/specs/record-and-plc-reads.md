@@ -3,7 +3,7 @@ title: Record and PLC reads
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Provide the core evidence an investigator needs about a public repository record
 and the identity history that authorizes its PDS.

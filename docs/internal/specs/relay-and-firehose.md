@@ -3,7 +3,7 @@ title: Relay and firehose operations
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Finish relay inspection and provide carefully bounded live stream observation for
 operators investigating crawl and repository events.

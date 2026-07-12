@@ -3,7 +3,7 @@ title: Documentation and release readiness
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Make the CLI installable, safe to operate, and verifiable before each milestone
 is represented as a release.

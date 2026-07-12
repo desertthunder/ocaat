@@ -2,10 +2,6 @@
     font-size: 1.01rem;
 }
 
-.sl-markdown-content > :is(h2, h3) {
-    margin-top: 2.25em;
-}
-
 .sl-markdown-content a {
     text-underline-offset: 0.2em;
     text-decoration-thickness: 0.08em;

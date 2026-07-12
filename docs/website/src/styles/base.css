@@ -9,9 +9,6 @@ html[data-theme='light'] {
 
 body {
 	background-color: var(--melange-bg);
-	background-image:
-		radial-gradient(circle at 82% 0%, var(--melange-glow-blue), transparent 26rem),
-		linear-gradient(115deg, var(--melange-glow-warm), transparent 38%);
 }
 
 ::selection {

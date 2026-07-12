@@ -3,7 +3,7 @@ title: Account and session management
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Support authenticated account lifecycle work while making credential storage
 opt-in, reviewable, and safe.

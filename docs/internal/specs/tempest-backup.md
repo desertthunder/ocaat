@@ -3,7 +3,7 @@ title: Tempest backup helpers
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Expose Tempest-specific backup state without confusing it with portable AT
 Protocol operations.

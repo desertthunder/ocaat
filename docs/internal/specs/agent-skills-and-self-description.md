@@ -3,7 +3,7 @@ title: Agent skills and CLI self-description
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Ship three discoverable read-only skills that teach agents how to use ocaat
 safely, and let users inspect or install those exact bundled skills without

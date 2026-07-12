@@ -3,7 +3,7 @@ title: Resource resolution and universal get
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Let a human or agent give ocaat one recognizable AT Protocol resource and
 receive the correct read-only document without first learning service topology.

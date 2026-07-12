@@ -3,7 +3,7 @@ title: CLI foundations and result contract
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Make every new read-only command predictable for both people and programs:
 stable formats, provenance, safe errors, and a shared implementation seam.

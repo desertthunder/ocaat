@@ -3,7 +3,7 @@ title: Read-only HTTP gateway
 status: planned
 ---
 
-## Objective
+## Purpose
 
 Provide a small, local HTTP interface to the read-only domain modules for
 scripts and services that cannot speak MCP.

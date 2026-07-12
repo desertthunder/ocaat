@@ -3,7 +3,7 @@ title: Blob management
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Support safe inspection and transfer of repository blobs with resumable local
 artifacts and explicit authenticated writes.

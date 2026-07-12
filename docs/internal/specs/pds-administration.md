@@ -3,9 +3,9 @@ title: PDS administration
 status: ready
 ---
 
-## Objective
+## Purpose
 
-Provide explicit, authenticated Tempest PDS administration without weakening the
+Provide explicit, authenticated PDS administration without weakening the
 read-only default of the main product direction.
 
 ## Commands

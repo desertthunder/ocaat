@@ -3,7 +3,7 @@ title: Lexicon and XRPC reads
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Let users inspect the schema behind an NSID and make deliberate read-only XRPC
 queries without treating an arbitrary remote service as an implicit fallback.

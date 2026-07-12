@@ -3,22 +3,22 @@ title: Repository transfer
 description: _todo_
 ---
 
-## Objective
+## Overview
 
 _todo_
 
-## Commands
+## Export and import
 
 _todo_
 
-## Requirements
+## CAR artifacts
 
 _todo_
 
-## Verification
+## Blob transfer
 
 _todo_
 
-## Subsequent planned work
+## Data integrity
 
 _todo_

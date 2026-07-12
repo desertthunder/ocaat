@@ -3,7 +3,7 @@ title: Batch JSONL reads
 status: ready
 ---
 
-## Objective
+## Purpose
 
 Allow an agent to submit a deterministic sequence of resource reads and consume
 one independently parseable result per request.
