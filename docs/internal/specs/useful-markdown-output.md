@@ -1,6 +1,6 @@
 ---
 title: Useful Markdown output
-status: ready
+status: complete
 ---
 
 ## Purpose

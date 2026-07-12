@@ -1,5 +1,6 @@
-(** PDS read commands and document/provenance rendering. *)
 open Cmdliner
+(** PDS read commands and document/provenance rendering. *)
+
 open Cmdliner.Term.Syntax
 
 (** Validate the configured PDS before a command makes a request. *)
@@ -127,8 +128,8 @@ let admin_status_cmd =
   let info = Cmd.info "admin-status" ~doc:"Show admin PDS status." in
   Cmd.v info term
 
-(** Run [pds account list] with the shared CLI context. *)
-(** Enumerate PDS repositories and render them as a records document. *)
+(** Run [pds account list] with the shared CLI context, enumerating PDS
+    repositories and rendering them as a records document. *)
 let account_list handles host context =
   match required_host context host "pds account list" with
   | Error code -> code
@@ -170,8 +171,8 @@ let account_list handles host context =
             (Renderer.document context.Cli_context.format document);
           0)
 
-(** Run [pds account status] with the shared CLI context. *)
-(** Fetch and render repository status for one account DID. *)
+(** Run [pds account status] with the shared CLI context, fetching and rendering
+    repository status for one account DID. *)
 let account_status did context =
   match context.Cli_context.pds with
   | None ->

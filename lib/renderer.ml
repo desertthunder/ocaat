@@ -5,26 +5,8 @@ let json_string ?(pretty = false) json =
 
 (** Render a result document as Markdown without dropping its metadata. *)
 let markdown document =
-  let json = Redaction.json (Document.to_json document) in
-  let schema =
-    match Document.to_json document with
-    | `Assoc fields -> (
-        match List.assoc_opt "schema" fields with
-        | Some (`String value) -> value
-        | _ -> "ocaat.document.v1")
-    | _ -> "ocaat.document.v1"
-  in
-  let kind =
-    match Document.to_json document with
-    | `Assoc fields -> (
-        match List.assoc_opt "kind" fields with
-        | Some (`String value) -> value
-        | _ -> "unknown")
-    | _ -> "unknown"
-  in
-  Printf.sprintf "# %s\n\n- schema: `%s`\n\n## Document\n\n```json\n%s\n```\n"
-    kind schema
-    (json_string ~pretty:true json)
+  let envelope = Redaction.json (Document.to_json document) in
+  Markdown.to_string (Markdown.of_envelope envelope)
 
 (** Render a result document in the selected format. *)
 let document format document =

@@ -16,6 +16,7 @@
   fmt
   logs
   cohttp-lwt-unix
+  (cmarkit (= 0.4.0))
   lwt_ssl
   lwt_ppx
   mirage-crypto-rng

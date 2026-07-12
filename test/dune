@@ -4,12 +4,12 @@
  (libraries ocaat))
 
 (test
+ (name markdown_test)
+ (modules markdown_test)
+ (libraries cmarkit ocaat))
+
+(test
  (name cli_fixture_test)
  (modules cli_fixture cli_fixture_test)
  (deps ../bin/main.exe)
- (libraries
-  ocaat
-  cohttp-lwt-unix
-  lwt.unix
-  unix
-  yojson))
+ (libraries cmarkit ocaat cohttp-lwt-unix lwt.unix unix yojson))

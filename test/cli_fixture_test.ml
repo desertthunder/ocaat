@@ -6,6 +6,8 @@ let assert_int label expected actual =
   if expected <> actual then
     failwith (Printf.sprintf "%s: expected %d, got %d" label expected actual)
 
+let assert_true label condition = if not condition then failwith label
+
 let assert_contains label needle value =
   if not (String.contains value needle.[0]) then
     failwith (Printf.sprintf "%s: %S does not contain %S" label value needle)
@@ -48,6 +50,39 @@ let assert_request (result : Cli_fixture.command_result) ~method_ ~url ~body
   match header "authorization" request.headers with
   | Some value -> assert_equal "redacted authorization" authorization value
   | None -> failwith "request did not contain an authorization header"
+
+let markdown_blocks markdown =
+  match
+    Cmarkit.Block.normalize
+      (Cmarkit.Doc.block (Cmarkit.Doc.of_string ~strict:false markdown))
+  with
+  | Cmarkit.Block.Blocks (blocks, _) -> blocks
+  | block -> [ block ]
+
+let markdown_heading expected blocks =
+  List.exists
+    (function
+      | Cmarkit.Block.Heading (heading, _) ->
+          let text =
+            Cmarkit.Inline.to_plain_text ~break_on_soft:false
+              (Cmarkit.Block.Heading.inline heading)
+            |> List.map (String.concat "")
+            |> String.concat "\n"
+          in
+          text = expected
+      | _ -> false)
+    blocks
+
+let markdown_code_blocks blocks =
+  List.filter_map
+    (function
+      | Cmarkit.Block.Code_block (code, _) ->
+          Some
+            (Cmarkit.Block.Code_block.code code
+            |> List.map Cmarkit.Block_line.to_string
+            |> String.concat "\n")
+      | _ -> None)
+    blocks
 
 let endpoint port = Printf.sprintf "http://127.0.0.1:%d" port
 
@@ -145,6 +180,44 @@ let () =
     (json_result.stdout ^ json_result.stderr);
   assert_request json_result ~method_:"GET"
     ~url:(endpoint 43127 ^ "/xrpc/com.atproto.server.describeServer")
+    ~body:"" ~authorization:"[REDACTED]";
+
+  let markdown_result =
+    with_fixture ~port:43133
+      (Cli_fixture.Json
+         (`Assoc
+            [
+              ("status", `String "ok");
+              ("url", `String "https://example.test/a_(b)");
+              ( "description",
+                `String "line one\n# forged heading\n```\n| forged | table |" );
+              ("html", `String "<script>alert(1)</script>");
+              ("token", `String "fixture-response-secret");
+            ]))
+      (fun port -> xrpc_args port [ "--format"; "markdown" ])
+  in
+  assert_int "Markdown exit status" 0 markdown_result.status;
+  assert_equal "Markdown stderr" "" markdown_result.stderr;
+  assert_contains "Markdown summary" "# Pds" markdown_result.stdout;
+  assert_contains "Markdown provenance" "## Provenance" markdown_result.stdout;
+  assert_contains "Markdown raw" "## Raw" markdown_result.stdout;
+  assert_contains "Markdown redaction" "[REDACTED]" markdown_result.stdout;
+  assert_not_contains "Markdown response secret" "fixture-response-secret"
+    markdown_result.stdout;
+  let parsed = markdown_blocks markdown_result.stdout in
+  assert_true "Markdown parsed provenance heading"
+    (markdown_heading "Provenance" parsed);
+  assert_true "Markdown parsed raw heading" (markdown_heading "Raw" parsed);
+  assert_true "Markdown hostile text remains code data"
+    (List.exists
+       (fun code ->
+         assert_contains "Markdown hostile fence" "forged heading" code;
+         true)
+       (markdown_code_blocks parsed));
+  assert_true "Markdown hostile text is not a heading"
+    (not (markdown_heading "forged heading" parsed));
+  assert_request markdown_result ~method_:"GET"
+    ~url:(endpoint 43133 ^ "/xrpc/com.atproto.server.describeServer")
     ~body:"" ~authorization:"[REDACTED]";
 
   let binary_body = "CAR\000fixture-bytes" in

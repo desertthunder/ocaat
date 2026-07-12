@@ -33,8 +33,12 @@ Bare PDS hosts are accepted where a positional host is documented and normalized
 
 Markdown is the default output format.
 
-It presents the complete result document, including its provenance, with the payload shown in a
-JSON code block.
+It starts with a kind-aware summary, followed by a `Provenance` section.
+
+A final `Raw` section contains the complete redacted `ocaat.document.v1` envelope
+in a JSON fence. URLs are rendered as links, protocol identifiers as code, and
+untrusted record text remains fenced data. The Markdown is constructed as a
+CommonMark document, so values cannot add headings, links, tables, or HTML.
 
 JSON output uses this envelope:
 

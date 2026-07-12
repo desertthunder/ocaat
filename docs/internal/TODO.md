@@ -37,26 +37,28 @@ Pegasus as the primary reference and future dependency candidate.
 
 ### T04: Render useful Markdown documents
 
+**Status:** complete
+
 **Spec:** [Useful Markdown output](specs/useful-markdown-output.md)
 
 **What to build:** Replace the JSON-only Markdown view with semantic,
 kind-aware summaries, visible provenance, and a final `Raw` section containing
 the complete redacted result envelope. Construct and serialize CommonMark with
-cmarkit after separate dependency approval.
+the approved, pinned cmarkit 0.4.0 dependency.
 
 **Blocked by:** T01
 
 **Acceptance criteria:**
 
-- [ ] Every document kind has a useful generic or kind-specific summary.
-- [ ] Provenance remains visible and `Raw` contains the complete redacted
+- [x] Every document kind has a useful generic or kind-specific summary.
+- [x] Provenance remains visible and `Raw` contains the complete redacted
       `ocaat.document.v1` envelope.
-- [ ] Untrusted strings cannot alter Markdown structure or bypass redaction.
-- [ ] JSON, JSONL, and raw output remain unchanged.
+- [x] Untrusted strings cannot alter Markdown structure or bypass redaction.
+- [x] JSON, JSONL, and raw output remain unchanged.
 
 **Verification:**
 
-- dune runtest
+- `dune runtest`
 - Execute representative CLI commands with `--format markdown` and parse their
   output with cmarkit in tests.
 

@@ -40,8 +40,8 @@ let exit_code_of_error_kind = function
   | Filesystem -> Exit_code.filesystem
   | Interrupted -> Exit_code.interrupted
 
-(** Alias used by shared output functions. *)
 type format = Format.t
+(** Alias used by shared output functions. *)
 
 (** Shared redaction aliases retained for command and test modules. *)
 let redacted = Redaction.redacted
@@ -84,10 +84,9 @@ let message_of_http_response ~endpoint (response : Http.response) =
 
 (** Print an HTTP response and return a process exit code.
 
-    Successful responses are written to stdout.
-
-    Unsuccessful responses use the standard CLI error envelope. *)
-(** Render an HTTP response as a document, raw payload, or sanitized error. *)
+    Successful responses are written to stdout. Unsuccessful responses use the
+    standard CLI error envelope. The selected format controls whether the
+    response is rendered as a document, raw payload, or sanitized error. *)
 let print_http_response ?(kind = "pds") ?(source = "pds") ?did ?pds ~format
     ~endpoint (response : Http.response) =
   if response.Http.status >= 200 && response.status < 300 then (
@@ -218,8 +217,8 @@ module Artifact = struct
 end
 
 module Progress = struct
-  (** Progress output is always diagnostic output and therefore uses stderr. *)
   type t = { format : format }
+  (** Progress output is always diagnostic output and therefore uses stderr. *)
 
   (** Create a progress renderer using the command's selected format. *)
   let make ~format = { format }
