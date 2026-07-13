@@ -1,7 +1,6 @@
 ---
 title: Records and PLC
-description: 
-  > Read public repository records from their PDS and inspect did:plc directory evidence.
+description: Read public repository records from their PDS and inspect did:plc directory evidence.
 ---
 
 ## Overview
