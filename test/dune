@@ -25,3 +25,9 @@
  (modules cli_fixture record_plc_test)
  (deps ../bin/main.exe)
  (libraries ocaat cohttp-lwt-unix lwt.unix unix yojson))
+
+(test
+ (name lexicon_test)
+ (modules cli_fixture lexicon_test)
+ (deps ../bin/main.exe)
+ (libraries ocaat cohttp-lwt-unix lwt.unix unix yojson))

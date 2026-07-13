@@ -4,8 +4,17 @@ type provenance = {
   fetched_at : string;
   did : string option;
   pds : string option;
+  sources : source_evidence list;
 }
 (** Provenance attached to a successful result document. *)
+
+and source_evidence = {
+  source : string;
+  endpoint : string;
+  did : string option;
+  pds : string option;
+}
+(** One upstream source used to assemble a result. *)
 
 type t = {
   kind : string;
@@ -26,11 +35,11 @@ let fetched_at () =
     (tm.tm_mon + 1) tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
 
 (** Build a document with a fresh provenance timestamp. *)
-let make ?did ?pds ?summary ~source ~endpoint ~kind data =
+let make ?did ?pds ?(sources = []) ?summary ~source ~endpoint ~kind data =
   {
     kind;
     data;
-    meta = { source; endpoint; fetched_at = fetched_at (); did; pds };
+    meta = { source; endpoint; fetched_at = fetched_at (); did; pds; sources };
     summary;
   }
 
@@ -52,6 +61,31 @@ let provenance_to_json provenance =
     match provenance.pds with
     | None -> fields
     | Some pds -> fields @ [ ("pds", `String pds) ]
+  in
+  let fields =
+    match provenance.sources with
+    | [] -> fields
+    | sources ->
+        let source_json (source : source_evidence) =
+          let fields =
+            [
+              ("source", `String source.source);
+              ("endpoint", `String source.endpoint);
+            ]
+          in
+          let fields =
+            match source.did with
+            | None -> fields
+            | Some did -> fields @ [ ("did", `String did) ]
+          in
+          let fields =
+            match source.pds with
+            | None -> fields
+            | Some pds -> fields @ [ ("pds", `String pds) ]
+          in
+          `Assoc fields
+        in
+        fields @ [ ("sources", `List (List.map source_json sources)) ]
   in
   `Assoc fields
 

@@ -61,6 +61,7 @@ let root_cmd =
       Cli_identity.cmd;
       Cli_plc.cmd;
       Cli_key.cmd;
+      Cli_lexicon.cmd;
       Cli_pds.cmd;
       Cli_record.cmd;
       Cli_relay.cmd;

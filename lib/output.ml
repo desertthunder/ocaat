@@ -127,8 +127,8 @@ let print_http_response ?(kind = "pds") ?(source = "pds") ?did ?pds ?summary
 
 (** Parse and render a successful JSON response while preserving the shared HTTP
     error contract for unsuccessful responses. *)
-let print_parsed_response ?did ?pds ?summary ~kind ~source ~endpoint ~format
-    ~parse (response : Http.response) =
+let print_parsed_response ?did ?pds ?(sources = []) ?summary ~kind ~source
+    ~endpoint ~format ~parse (response : Http.response) =
   if response.Http.status >= 200 && response.status < 300 then (
     match parse response.body with
     | Error reason -> remote_error ~format reason
@@ -138,7 +138,8 @@ let print_parsed_response ?did ?pds ?summary ~kind ~source ~endpoint ~format
           Exit_code.ok)
         else
           let document =
-            Document.make ?did ?pds ?summary ~source ~endpoint ~kind data
+            Document.make ?did ?pds ~sources ?summary ~source ~endpoint ~kind
+              data
           in
           Renderer.print_stdout (Renderer.document format document);
           Exit_code.ok)

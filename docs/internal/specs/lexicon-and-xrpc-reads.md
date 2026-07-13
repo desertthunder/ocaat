@@ -1,6 +1,6 @@
 ---
 title: Lexicon and XRPC reads
-status: ready
+status: complete
 ---
 
 ## Purpose
@@ -10,13 +10,13 @@ queries without treating an arbitrary remote service as an implicit fallback.
 
 ## Commands
 
-~~~text
+```text
 ocaat lexicon get <nsid>
 ocaat lexicon describe <nsid>
 ocaat xrpc call <nsid> [--param <key=value>]...
 ocaat xrpc describe <nsid>
 ocaat xrpc query <nsid> [--param <key=value>]...
-~~~
+```
 
 Xrpc query remains a compatibility alias for xrpc call. Call accepts query
 methods only in the first release and requires an explicit --pds or OCAAT_PDS.
@@ -37,9 +37,9 @@ the network path and its provenance explicit.
 
 ## Current state
 
-The generic XRPC client supports GET queries and key-value parameters but
-returns raw response output. Tempest confirms the query contracts for
-getRecord, listRecords, describeRepo, getRepo, and describeServer.
+The generic XRPC client supports GET queries and key-value parameters.
+Lexicon get/describe and XRPC describe use the DNS → DID → PDS resolution path and
+the shared document envelope.
 
 ## Acceptance criteria
 
@@ -52,14 +52,14 @@ getRecord, listRecords, describeRepo, getRepo, and describeServer.
 
 ## Verification
 
-~~~sh
+```sh
 dune runtest
 dune exec -- ocaat xrpc call com.atproto.server.describeServer --pds https://tempest.desertthunder.dev --format json
 dune exec -- ocaat xrpc describe com.atproto.repo.getRecord --format json
-~~~
+```
 
-Add local fixtures for DNS TXT data, DID documents, Lexicon records, malformed
-JSON, redirects, response-size limits, and XRPC method failures.
+Executable-boundary fixtures cover DNS TXT data, DID documents, Lexicon records,
+malformed JSON, redirects, response-size limits, and source mismatches.
 
 ## Subsequent planned work
 

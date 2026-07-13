@@ -218,6 +218,19 @@ ocaat record list did:plc:oga6ppys7zwxlheuqmcm7dac --collections --format json
 Record reads use the resolved actor PDS unless `--pds URL` overrides it. The
 selected endpoint is retained in provenance.
 
+## Lexicons
+
+### lexicon get
+
+Resolves a published Lexicon through its `_lexicon` DNS TXT authority, DID
+document, and declared PDS. The returned `data` is the validated Lexicon
+schema where `meta.sources` records each upstream source.
+
+### lexicon describe
+
+Fetches a Lexicon and reports its selected definition and type without making an
+XRPC procedure or query call.
+
 ### plc show and plc history
 
 Reads current PLC data from `<plc-host>/<did>/data` or the operation log from
@@ -345,6 +358,11 @@ Lexicon field names. Procedures aren't supported by this command.
 ### xrpc query
 
 Alias for `xrpc call`
+
+### xrpc describe
+
+Resolves the method's Lexicon and reports the selected definition and method
+type. It never substitutes a PDS response for the Lexicon.
 
 ## See Also
 

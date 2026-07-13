@@ -63,7 +63,26 @@ let call_cmd = command "call" "Run a read-only XRPC query."
 (** Compatibility alias for [xrpc call]. *)
 let query_cmd = command "query" "Alias for xrpc call."
 
+(** Resolve an XRPC method's Lexicon without calling the method. *)
+let describe method_ context = Cli_lexicon.describe method_ context
+
+let describe_cmd =
+  let method_ =
+    Arg.(
+      required
+      & pos 0 (some string) None
+      & info [] ~docv:"METHOD" ~doc:"XRPC method NSID to describe.")
+  in
+  let term =
+    Cli_context.with_context
+      (let+ method_ = method_ in
+       describe method_)
+  in
+  Cmd.v
+    (Cmd.info "describe" ~doc:"Describe an XRPC method from its Lexicon.")
+    term
+
 (** Top-level [xrpc] command group. *)
 let cmd =
   let info = Cmd.info "xrpc" ~doc:"Generic XRPC escape hatch." in
-  Cmd.group info [ call_cmd; query_cmd ]
+  Cmd.group info [ call_cmd; query_cmd; describe_cmd ]

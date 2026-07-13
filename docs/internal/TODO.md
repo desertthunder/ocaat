@@ -87,25 +87,11 @@ document contract, and add XRPC description from Lexicon data.
 ### T09: Implement Lexicon reads
 
 **Spec:** [Lexicon and XRPC reads](specs/lexicon-and-xrpc-reads.md)
+**Status:** complete
 
-**What to build:** Add Lexicon get and describe with DNS authority discovery,
+Added Lexicon get and describe with DNS authority discovery,
 DID resolution, PDS record retrieval, source evidence, and bounded network
 handling.
-
-**Blocked by:** T01, T02, T06
-
-**Acceptance criteria:**
-
-- [ ] The returned document id must equal the requested NSID.
-- [ ] Redirects, oversized responses, invalid JSON, and source mismatch are
-      rejected.
-- [ ] Diagnostics identify the failing resolution stage without hiding source
-      provenance.
-
-**Verification:**
-
-- dune runtest
-- dune exec -- ocaat xrpc describe com.atproto.repo.getRecord --format json
 
 ### T10: Add universal get
 

@@ -39,7 +39,8 @@ Successful structured output uses this document shape:
     "endpoint": "https://...",
     "fetched_at": "RFC3339 timestamp",
     "did": "optional DID",
-    "pds": "optional PDS URL"
+    "pds": "optional PDS URL",
+    "sources": "optional list of upstream source evidence"
   }
 }
 ```
@@ -47,6 +48,10 @@ Successful structured output uses this document shape:
 Data is the protocol payload with secrets redacted. Metadata describes the
 actual source, never merely the requested source. Markdown renders the same
 document without omitting source, endpoint, or fetch time.
+
+Commands that assemble a result from more than one trusted upstream may include
+`meta.sources`. Each entry records its `source`, `endpoint`, and any relevant
+`did` or `pds`, while `data` remains the unmodified protocol payload.
 
 Successful output goes to stdout. Warnings, progress, and debug logs go to
 stderr. Errors preserve the existing sanitized error categories and exit codes;

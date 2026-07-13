@@ -7,6 +7,7 @@ type response =
   | Malformed of string
   | Delayed of float * response
   | Remote_error of int * string
+  | Redirect of int * string
 
 type request = {
   method_ : string;
@@ -92,6 +93,10 @@ let rec render_response = function
       if status < 400 || status > 599 then
         fail_invalid "remote error status" (string_of_int status)
       else { status; content_type = "application/json"; body; delay = 0.0 }
+  | Redirect (status, body) ->
+      if status < 300 || status > 399 then
+        fail_invalid "redirect status" (string_of_int status)
+      else { status; content_type = "text/plain"; body; delay = 0.0 }
 
 let request_metadata ~endpoint request body =
   {

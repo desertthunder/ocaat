@@ -7,6 +7,7 @@
   Cli_identity
   Cli_plc
   Cli_key
+  Cli_lexicon
   Cli_pds
   Cli_record
   Cli_relay
@@ -18,6 +19,7 @@
   Http
   Identity
   Key
+  Lexicon
   Markdown
   Migration
   Output

@@ -24,8 +24,8 @@ let selected_pds context command =
 
 let render ~kind query parser context =
   Output.print_parsed_response ~kind ~source:"pds" ~did:query.Record.did
-    ~pds:query.pds ~endpoint:query.endpoint
-    ~format:context.Cli_context.format ~parse:parser query.response
+    ~pds:query.pds ~endpoint:query.endpoint ~format:context.Cli_context.format
+    ~parse:parser query.response
 
 let get value context =
   match selected_pds context "record get" with
@@ -35,12 +35,13 @@ let get value context =
       | Error error -> print_failure context error
       | Ok query ->
           render ~kind:"record" query
-            (Record.parse_get_response ~endpoint:query.endpoint) context)
+            (Record.parse_get_response ~endpoint:query.endpoint)
+            context)
 
 let list actor collections collection limit cursor context =
   match selected_pds context "record list" with
   | Error code -> code
-  | Ok pds ->
+  | Ok pds -> (
       let mode_result =
         if collections then
           match (collection, limit, cursor) with
@@ -69,8 +70,7 @@ let list actor collections collection limit cursor context =
       | Error code -> code
       | Ok mode -> (
           match
-            Lwt_main.run
-              (Record.list ?auth:context.auth ?pds ~actor ~mode ())
+            Lwt_main.run (Record.list ?auth:context.auth ?pds ~actor ~mode ())
           with
           | Error error -> print_failure context error
           | Ok query -> (
@@ -83,7 +83,7 @@ let list actor collections collection limit cursor context =
                   render ~kind:"records" query
                     (Record.parse_list_response ~endpoint:query.endpoint
                        ~did:query.did ~collection)
-                    context))
+                    context)))
 
 let get_cmd =
   let value =
@@ -114,19 +114,22 @@ let list_cmd =
   in
   let collection =
     Arg.(
-      value & opt (some string) None
+      value
+      & opt (some string) None
       & info [ "collection" ] ~docv:"NSID"
           ~doc:"List records from this validated collection.")
   in
   let limit =
     Arg.(
-      value & opt (some int) None
+      value
+      & opt (some int) None
       & info [ "limit" ] ~docv:"N"
           ~doc:"Return between 1 and 100 records; the default is 50.")
   in
   let cursor =
     Arg.(
-      value & opt (some string) None
+      value
+      & opt (some string) None
       & info [ "cursor" ] ~docv:"CURSOR" ~doc:"Continue after this cursor.")
   in
   let term =
