@@ -1,5 +1,5 @@
 ---
-title: Command reference
+title: ocaat manual
 description: Current ocaat commands, options, endpoints, and exit codes.
 ---
 
@@ -332,15 +332,19 @@ fragments, and non-root paths.
 
 Validates a local artifact path before filesystem work.
 
-## XRPC queries
+## XRPC Calls
 
-XRPC queries are read-only GET requests and return a `pds` document.
+XRPC calls are GET requests and return a `pds` document.
+
+### xrpc call
+
+Calls a validated method NSID against `--pds URL`. Repeated `--param K=V`
+options become URL query parameters. Parameter names must be valid ASCII
+Lexicon field names. Procedures aren't supported by this command.
 
 ### xrpc query
 
-Calls a validated method NSID against `--pds URL`. Repeated `--param K=V`
-options become URL query parameters. Procedures are outside this command's
-read-only scope.
+Alias for `xrpc call`
 
 ## See Also
 

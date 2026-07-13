@@ -98,6 +98,18 @@ let xrpc_args port extra =
   ]
   @ extra
 
+let xrpc_call_args port extra =
+  [
+    "xrpc";
+    "call";
+    "com.atproto.server.describeServer";
+    "--pds";
+    endpoint port;
+    "--auth";
+    "fixture-request-secret";
+  ]
+  @ extra
+
 let with_fixture ~port response args =
   let fixture =
     Cli_fixture.create ~port ~path:"/xrpc/com.atproto.server.describeServer"
@@ -195,6 +207,37 @@ let () =
   assert_request json_result ~method_:"GET"
     ~url:(endpoint 43127 ^ "/xrpc/com.atproto.server.describeServer")
     ~body:"" ~authorization:"[REDACTED]";
+
+  let call_result =
+    with_fixture ~port:43136
+      (Cli_fixture.Json (`Assoc [ ("ok", `Bool true) ]))
+      (fun port -> xrpc_call_args port [ "--format"; "json" ])
+  in
+  assert_int "call exit status" 0 call_result.status;
+  assert_equal "call stderr" "" call_result.stderr;
+  let call_json = Yojson.Safe.from_string call_result.stdout in
+  assert_equal "call kind" "pds" (json_string "kind" call_json);
+  assert_equal "call endpoint"
+    (endpoint 43136 ^ "/xrpc/com.atproto.server.describeServer")
+    (json_string "endpoint" (json_member "meta" call_json));
+  assert_request call_result ~method_:"GET"
+    ~url:(endpoint 43136 ^ "/xrpc/com.atproto.server.describeServer")
+    ~body:"" ~authorization:"[REDACTED]";
+
+  let invalid_param_result =
+    with_fixture ~port:43138
+      (Cli_fixture.Json (`Assoc [ ("unexpected", `Bool true) ]))
+      (fun port ->
+        xrpc_call_args port [ "--param"; "=secret"; "--format"; "json" ])
+  in
+  assert_int "invalid parameter exit status" 65 invalid_param_result.status;
+  assert_equal "invalid parameter stdout" "" invalid_param_result.stdout;
+  assert_contains "invalid parameter diagnostic" "parameter key is empty"
+    invalid_param_result.stderr;
+  assert_not_contains "invalid parameter redaction" "secret"
+    invalid_param_result.stderr;
+  assert_true "invalid parameter made no request"
+    (invalid_param_result.request = None);
 
   let markdown_result =
     with_fixture ~port:43133
@@ -445,6 +488,34 @@ let () =
   assert_request remote_result ~method_:"GET"
     ~url:(endpoint 43131 ^ "/xrpc/com.atproto.server.describeServer")
     ~body:"" ~authorization:"[REDACTED]";
+
+  let procedure_fixture =
+    Cli_fixture.create_routes ~port:43137
+      [
+        ( "/xrpc/com.atproto.server.createSession",
+          Cli_fixture.Json (`Assoc [ ("unexpected", `Bool true) ]) );
+      ]
+  in
+  let procedure_result =
+    Fun.protect
+      ~finally:(fun () -> Cli_fixture.close procedure_fixture)
+      (fun () ->
+        Cli_fixture.run procedure_fixture
+          [
+            "xrpc";
+            "call";
+            "com.atproto.server.createSession";
+            "--pds";
+            endpoint 43137;
+            "--format";
+            "json";
+          ])
+  in
+  assert_int "procedure exit status" 65 procedure_result.status;
+  assert_equal "procedure stdout" "" procedure_result.stdout;
+  assert_contains "procedure diagnostic" "is a procedure"
+    procedure_result.stderr;
+  assert_true "procedure made no request" (procedure_result.request = None);
 
   let post_port = 43132 in
   let post_fixture =

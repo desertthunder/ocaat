@@ -76,30 +76,13 @@ and the resolve command.
 Added record get, record-list page and collection-summary modes, PLC show, and PLC
 history using the identity result.
 
-**Verification:**
-
-- dune runtest
-- dune exec -- ocaat record list did:plc:oga6ppys7zwxlheuqmcm7dac --collections --format json
-
 ### T08: Complete read-only XRPC calls and descriptions
 
 **Spec:** [Lexicon and XRPC reads](specs/lexicon-and-xrpc-reads.md)
+**Status:** complete
 
-**What to build:** Make xrpc call the primary query command, retain query as an
-alias, apply the document contract, and add XRPC description from Lexicon data.
-
-**Blocked by:** T01, T02
-
-**Acceptance criteria:**
-
-- [ ] Query calls validate NSIDs and parameters before connection.
-- [ ] Procedures are rejected clearly by the first-release command.
-- [ ] Call and query have identical successful behavior.
-
-**Verification:**
-
-- dune runtest
-- dune exec -- ocaat xrpc call com.atproto.server.describeServer --pds https://tempest.desertthunder.dev --format json
+Makes xrpc call the primary query command, retain query as an alias, apply the
+document contract, and add XRPC description from Lexicon data.
 
 ### T09: Implement Lexicon reads
 
@@ -141,9 +124,9 @@ AT Protocol web URLs, NSIDs, and PDS URLs.
 
 **Verification:**
 
-- dune runtest
-- dune exec -- ocaat get did:plc:oga6ppys7zwxlheuqmcm7dac --format json
-- dune exec -- ocaat get did:plc:xg2vq45muivyy3xwatcehspu --format json
+- `dune runtest`
+- `dune exec -- ocaat get did:plc:oga6ppys7zwxlheuqmcm7dac --format json`
+- `dune exec -- ocaat get did:plc:xg2vq45muivyy3xwatcehspu --format json`
 
 ### T11: Add deterministic JSONL batch reads
 
