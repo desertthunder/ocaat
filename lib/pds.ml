@@ -340,12 +340,9 @@ let list_all_repos ?auth host =
 
 (** Build a DID document URL for DID methods used by atproto accounts. *)
 let did_document_url did =
-  if String.starts_with ~prefix:"did:plc:" did then
-    Some ("https://plc.directory/" ^ did)
-  else if String.starts_with ~prefix:"did:web:" did then
-    let host = String.sub did 8 (String.length did - 8) in
-    Some ("https://" ^ host ^ "/.well-known/did.json")
-  else None
+  match Identity.did_document_url did with
+  | Ok (url, _) -> Some url
+  | Error _ -> None
 
 (** Extract the first syntactically valid handle from a DID document JSON body.
 *)

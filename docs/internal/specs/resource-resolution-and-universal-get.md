@@ -10,23 +10,23 @@ receive the correct read-only document without first learning service topology.
 
 ## Commands
 
-~~~text
+```text
 ocaat resolve <handle-or-did>
 ocaat get <resource>
-~~~
+```
 
 Resolve returns a normalized DID, the DID document, discovered PDS service, and
 handle evidence when available.
 
 Get dispatches by validated input:
 
-| Input | Result kind |
-| --- | --- |
-| handle or DID | identity |
-| AT URI | record |
+| Input                          | Result kind       |
+| ------------------------------ | ----------------- |
+| handle or DID                  | identity          |
+| AT URI                         | record            |
 | recognized AT Protocol web URL | normalized record |
-| NSID | lexicon |
-| PDS URL | pds |
+| NSID                           | lexicon           |
+| PDS URL                        | pds               |
 
 ## Source-selection contract
 
@@ -41,16 +41,16 @@ reports the service that answered it.
 
 ## Current state
 
-Syntax validation already covers handles, DIDs, AT URIs, NSIDs, and safe service
-URLs. There is no identity module, DID resolver, web-URL normalizer, or command
-dispatcher yet.
+Syntax validation covers handles, DIDs, AT URIs, NSIDs, and safe service URLs.
+The identity module now resolves handles through DNS TXT and the HTTPS well-known
+method, fetches supported DID documents, and extracts validated PDS services.
+The universal resource dispatcher and web-URL normalizer remain future work.
 
 ## Technical plan
 
-- Add Identity with handle resolution, DID-document retrieval, service
-  extraction, and normalized actor results.
-- Support did:plc and did:web before accepting other DID methods. Return a
-  validation error for unsupported methods rather than guessing.
+- Identity resolves handles, fetches DID documents for did:plc and did:web, and
+  extracts normalized actor and PDS results.
+- Keep unsupported DID methods as validation errors rather than guessing.
 - Add Resource to classify input only after syntax validation. Its dispatcher
   calls Identity, Record, Lexicon, or Pds; it does not duplicate their logic.
 - Normalize only documented AT Protocol web URL shapes. Reject other web URLs
@@ -70,12 +70,12 @@ dispatcher yet.
 
 ## Verification
 
-~~~sh
+```sh
 dune runtest
 dune exec -- ocaat resolve did:plc:oga6ppys7zwxlheuqmcm7dac --format json
 dune exec -- ocaat get did:plc:oga6ppys7zwxlheuqmcm7dac --format markdown
 dune exec -- ocaat get https://tempest.desertthunder.dev --format json
-~~~
+```
 
 Use fixture DID documents and handle DNS or HTTPS responses for repeatable
 tests. Add manual non-destructive checks only after fixture coverage is green.

@@ -13,3 +13,9 @@
  (modules cli_fixture cli_fixture_test)
  (deps ../bin/main.exe)
  (libraries cmarkit ocaat cohttp-lwt-unix lwt.unix unix yojson))
+
+(test
+ (name identity_test)
+ (modules cli_fixture identity_test)
+ (deps ../bin/main.exe)
+ (libraries cmarkit ocaat cohttp-lwt-unix lwt.unix unix yojson))

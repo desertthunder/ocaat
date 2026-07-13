@@ -4,6 +4,7 @@ import starlight from "@astrojs/starlight";
 
 // https://astro.build/config
 export default defineConfig({
+  vite: { server: { open: true } },
   integrations: [
     starlight({
       title: "ocaat",
@@ -74,10 +75,7 @@ export default defineConfig({
             { label: "Repository event stream", slug: "learn/repository-event-stream" },
           ],
         },
-        {
-          label: "Manual",
-          items: [{ autogenerate: { directory: "reference" } }],
-        },
+        { label: "Manual", items: [{ autogenerate: { directory: "reference" } }] },
       ],
     }),
   ],

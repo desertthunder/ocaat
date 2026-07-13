@@ -4,6 +4,7 @@
   Ocaat
   Cli_account
   Cli_context
+  Cli_identity
   Cli_key
   Cli_pds
   Cli_relay
@@ -13,6 +14,7 @@
   Error_document
   Format
   Http
+  Identity
   Key
   Markdown
   Migration

@@ -31,9 +31,11 @@ and exit status.
 
 Ran a compatibility spike against Tempest-compatible CAR fixtures, documented
 parser limits, and evaluated Pegasus `ipld` as the exact OCaml dependency
-candidate. Its current reader lacks the validation and limits required for
-untrusted input, so T12 retains a bounded native implementation while treating
-Pegasus as the primary reference and future dependency candidate.
+candidate.
+
+Its current reader lacks the validation and limits required for untrusted input,
+so T12 retains a bounded native implementation while treating [Pegasus](https://tangled.org/futur.blue/pegasus)
+as the primary reference and future dependency candidate.
 
 ### T04: Render useful Markdown documents
 
@@ -53,46 +55,18 @@ three bundled skills install safely into the default skills directory.
 ### T05: Migrate existing PDS reads to result documents
 
 **Spec:** [PDS observability](specs/pds-observability.md)
+**Status:** complete
 
-**What to build:** Move PDS describe, health, stats, admin-status, and account
-read output to the document and provenance contract without changing their
-endpoint or authentication semantics.
-
-**Blocked by:** T01
-
-**Acceptance criteria:**
-
-- [x] Public and admin PDS responses retain their current useful summaries.
-- [x] Missing optional metrics remain absent rather than becoming zero values.
-- [x] JSON output includes the actual PDS endpoint and source metadata.
-
-**Verification:**
-
-- dune runtest
-- dune exec -- ocaat pds health --pds https://tempest.desertthunder.dev --format json
+Moved PDS describe, health, stats, admin-status, and account read output to the document
+and provenance contract without changing their endpoint or authentication semantics.
 
 ### T06: Implement identity resolution
 
 **Spec:** [Resource resolution and universal get](specs/resource-resolution-and-universal-get.md)
+**Status:** complete
 
-**What to build:** Add handle resolution, did:plc and did:web document lookup,
-PDS service extraction, and the resolve command.
-
-**Blocked by:** T01, T02
-
-**Acceptance criteria:**
-
-- [ ] Handles resolve through the AT Protocol algorithm without AppView
-      fallback.
-- [ ] DID results include normalized identity, DID document, and discovered PDS
-      evidence where present.
-- [ ] Unsupported DID methods and invalid service bindings fail before PDS
-      access.
-
-**Verification:**
-
-- dune runtest
-- dune exec -- ocaat resolve did:plc:oga6ppys7zwxlheuqmcm7dac --format json
+Added handle resolution, did:plc and did:web document lookup, PDS service extraction,
+and the resolve command.
 
 ### T07: Implement record and PLC reads
 

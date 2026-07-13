@@ -178,6 +178,20 @@ output.
 Calls `com.atproto.sync.getRepoStatus` for the positional DID and `--pds URL`.
 The DID is validated before the request.
 
+## Identity resolution
+
+### resolve
+
+Resolves a handle or supported DID into a normalized identity document. Handle
+resolution uses the AT Protocol DNS TXT and HTTPS well-known methods, then
+checks the DID document's reverse handle claim. The result includes the
+document's PDS service when one is declared.
+
+```sh
+ocaat resolve alice.example --format json
+ocaat resolve did:plc:oga6ppys7zwxlheuqmcm7dac --format markdown
+```
+
 ## Key management
 
 Key commands produce local `doctor` documents with the selected format.
