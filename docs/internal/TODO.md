@@ -38,29 +38,11 @@ Pegasus as the primary reference and future dependency candidate.
 ### T04: Render useful Markdown documents
 
 **Status:** complete
-
 **Spec:** [Useful Markdown output](specs/useful-markdown-output.md)
 
-**What to build:** Replace the JSON-only Markdown view with semantic,
-kind-aware summaries, visible provenance, and a final `Raw` section containing
-the complete redacted result envelope. Construct and serialize CommonMark with
-the approved, pinned cmarkit 0.4.0 dependency.
-
-**Blocked by:** T01
-
-**Acceptance criteria:**
-
-- [x] Every document kind has a useful generic or kind-specific summary.
-- [x] Provenance remains visible and `Raw` contains the complete redacted
-      `ocaat.document.v1` envelope.
-- [x] Untrusted strings cannot alter Markdown structure or bypass redaction.
-- [x] JSON, JSONL, and raw output remain unchanged.
-
-**Verification:**
-
-- `dune runtest`
-- Execute representative CLI commands with `--format markdown` and parse their
-  output with cmarkit in tests.
+Replaced the JSON-only Markdown view with semantic, kind-aware summaries, visible
+provenance, and a final `Raw` section containing the complete redacted result envelope.
+Construct and serialize CommonMark with the approved, pinned cmarkit 0.4.0 dependency.
 
 ## Milestone 1: read-only CLI and skill release
 
@@ -80,9 +62,9 @@ endpoint or authentication semantics.
 
 **Acceptance criteria:**
 
-- [ ] Public and admin PDS responses retain their current useful summaries.
-- [ ] Missing optional metrics remain absent rather than becoming zero values.
-- [ ] JSON output includes the actual PDS endpoint and source metadata.
+- [x] Public and admin PDS responses retain their current useful summaries.
+- [x] Missing optional metrics remain absent rather than becoming zero values.
+- [x] JSON output includes the actual PDS endpoint and source metadata.
 
 **Verification:**
 

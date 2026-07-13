@@ -6,7 +6,8 @@ let json_string ?(pretty = false) json =
 (** Render a result document as Markdown without dropping its metadata. *)
 let markdown document =
   let envelope = Redaction.json (Document.to_json document) in
-  Markdown.to_string (Markdown.of_envelope envelope)
+  let summary = Option.map Redaction.json document.Document.summary in
+  Markdown.to_string (Markdown.of_envelope ?summary envelope)
 
 (** Render a result document in the selected format. *)
 let document format document =

@@ -383,6 +383,16 @@ let pds_summary data =
                 "admin";
                 "sequencer";
                 "blobStore";
+                "hostname";
+                "serviceDid";
+                "accountCount";
+                "repoCount";
+                "blobCount";
+                "sequencerCursor";
+                "configuredCrawlers";
+                "storageBackend";
+                "adminAuthConfigured";
+                "statusCues";
               ])
           fields
       in
@@ -412,15 +422,16 @@ let provenance_fields = function
         fields
   | _ -> []
 
-let of_envelope (envelope : Yojson.Safe.t) : t =
+let of_envelope ?summary (envelope : Yojson.Safe.t) : t =
   let kind = Option.value (string_field "kind" envelope) ~default:"unknown" in
   let data = Option.value (assoc_field "data" envelope) ~default:`Null in
   let meta = Option.value (assoc_field "meta" envelope) ~default:(`Assoc []) in
+  let summary = Option.value summary ~default:data in
   [
     Heading (1, [ Text (title_of_kind kind) ]);
     Paragraph [ Text (lead_of_kind (String.lowercase_ascii kind)) ];
   ]
-  @ formatter_for_kind kind data
+  @ formatter_for_kind kind summary
   @ [ Heading (2, [ Text "Provenance" ]); Fields (provenance_fields meta) ]
   @ [
       Heading (2, [ Text "Raw" ]);

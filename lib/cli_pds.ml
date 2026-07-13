@@ -63,11 +63,38 @@ let describe_cmd =
   let info = Cmd.info "describe" ~doc:"Describe a PDS server." in
   Cmd.v info term
 
+(** Fetch the optional describe payload used to enrich human inspection. *)
+let describe_body ?auth pds =
+  let response = Lwt_main.run (Pds.describe ?auth pds) in
+  if response.status >= 200 && response.status < 300 then Some response.body
+  else None
+
+(** Build the presentation-only summary for a structured PDS response. *)
+let inspection_summary ~admin ~pds context json =
+  let describe_body = describe_body ?auth:context.Cli_context.auth pds in
+  let service_did = Option.bind describe_body Pds.service_did_from_describe in
+  let inspection =
+    if admin then
+      Pds.admin_inspection ?service_did ?describe_body ~host:pds json
+    else Pds.public_inspection ?service_did ?describe_body ~host:pds json
+  in
+  Pds.inspection_to_json inspection
+
 (** Render an operational PDS response with its actual endpoint. *)
-let print_public_pds_response ~method_ ~pds context response =
+let print_inspection_response ~admin ~method_ ~pds context
+    (response : Http.response) =
   let endpoint = Pds.operational_url pds method_ in
-  Output.print_http_response ~kind:"pds" ~source:"pds" ~endpoint ~pds
-    ~format:context.Cli_context.format response
+  let summary =
+    match context.Cli_context.format with
+    | Format.Markdown -> (
+        match Pds.parse_json_response endpoint response.body with
+        | Error _ -> None
+        | Ok json -> Some (inspection_summary ~admin ~pds context json))
+    | Format.Json | Format.Jsonl | Format.Raw -> None
+  in
+  Output.print_http_response ~kind:"pds" ~source:"pds" ?summary
+    ~require_json:true ~endpoint ~pds ~format:context.Cli_context.format
+    response
 
 (** Run [pds health] with the shared CLI context. *)
 let health context =
@@ -75,7 +102,8 @@ let health context =
   | Error code -> code
   | Ok pds ->
       let response = Lwt_main.run (Pds.health pds) in
-      print_public_pds_response ~method_:Pds.Health ~pds context response
+      print_inspection_response ~admin:false ~method_:Pds.Health ~pds context
+        response
 
 (** Run [pds stats] with the shared CLI context. *)
 let stats context =
@@ -83,7 +111,8 @@ let stats context =
   | Error code -> code
   | Ok pds ->
       let response = Lwt_main.run (Pds.stats pds) in
-      print_public_pds_response ~method_:Pds.Stats ~pds context response
+      print_inspection_response ~admin:false ~method_:Pds.Stats ~pds context
+        response
 
 (** Run [pds admin-status] with the shared CLI context. *)
 let admin_status context =
@@ -94,9 +123,8 @@ let admin_status context =
       | Error code -> code
       | Ok admin_token ->
           let response = Lwt_main.run (Pds.admin_status ~admin_token pds) in
-          Output.print_http_response ~kind:"pds" ~source:"pds"
-            ~endpoint:(Pds.operational_url pds Pds.Admin_status)
-            ~pds ~format:context.Cli_context.format response)
+          print_inspection_response ~admin:true ~method_:Pds.Admin_status ~pds
+            context response)
 
 (** Cmdliner command for [pds health]. *)
 let health_cmd =
@@ -190,6 +218,7 @@ let account_status did context =
               Output.validation_error ~format:context.Cli_context.format reason
           | Ok response ->
               Output.print_http_response ~kind:"pds" ~source:"pds"
+                ~require_json:true
                 ~endpoint:(Pds.repo_status_url pds did)
                 ~pds ~did ~format:context.Cli_context.format response))
 

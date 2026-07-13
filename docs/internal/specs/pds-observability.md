@@ -1,6 +1,6 @@
 ---
 title: PDS observability
-status: ready
+status: complete
 ---
 
 ## Purpose
@@ -21,10 +21,10 @@ ocaat pds account status <did> --pds <url>
 
 ## Current state
 
-These commands and their Pds parsing helpers already exist. Current unit tests
-cover healthy and degraded public responses, admin auth failures, listRepos
-pagination, and repo status validation. They print endpoint-specific bodies or
-human summaries and need migration to the shared result document.
+These commands and their Pds parsing helpers exist. They now render successful
+reads through the shared result document and provenance contract. Markdown uses
+the normalized inspection facts for the operator summary and keeps the complete
+redacted document in `Raw`; JSON keeps the endpoint response in `data`.
 
 ## Requirements
 

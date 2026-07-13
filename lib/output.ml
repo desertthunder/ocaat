@@ -87,22 +87,35 @@ let message_of_http_response ~endpoint (response : Http.response) =
     Successful responses are written to stdout. Unsuccessful responses use the
     standard CLI error envelope. The selected format controls whether the
     response is rendered as a document, raw payload, or sanitized error. *)
-let print_http_response ?(kind = "pds") ?(source = "pds") ?did ?pds ~format
-    ~endpoint (response : Http.response) =
-  if response.Http.status >= 200 && response.status < 300 then (
+let print_http_response ?(kind = "pds") ?(source = "pds") ?did ?pds ?summary
+    ?(require_json = false) ~format ~endpoint (response : Http.response) =
+  if response.Http.status >= 200 && response.status < 300 then
     match format with
     | Format.Raw ->
         Renderer.print_stdout (Renderer.raw response.body);
         Exit_code.ok
-    | (Format.Markdown | Format.Json | Format.Jsonl) as format ->
-        let data =
+    | (Format.Markdown | Format.Json | Format.Jsonl) as format -> (
+        let data_result =
           match Yojson.Safe.from_string response.body with
-          | json -> json
-          | exception Yojson.Json_error _ -> `String response.body
+          | json -> Ok json
+          | exception Yojson.Json_error reason -> Error reason
         in
-        let document = Document.make ?did ?pds ~source ~endpoint ~kind data in
-        Renderer.print_stdout (Renderer.document format document);
-        Exit_code.ok)
+        match data_result with
+        | Ok data ->
+            let document =
+              Document.make ?did ?pds ?summary ~source ~endpoint ~kind data
+            in
+            Renderer.print_stdout (Renderer.document format document);
+            Exit_code.ok
+        | Error reason when require_json ->
+            remote_error ~format (endpoint ^ " returned invalid JSON: " ^ reason)
+        | Error _ ->
+            let document =
+              Document.make ?did ?pds ?summary ~source ~endpoint ~kind
+                (`String response.body)
+            in
+            Renderer.print_stdout (Renderer.document format document);
+            Exit_code.ok)
   else if response.status = 0 then
     network_error ~format (message_of_http_response ~endpoint response)
   else if response.status = 401 || response.status = 403 then

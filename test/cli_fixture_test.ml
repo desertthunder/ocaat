@@ -107,6 +107,20 @@ let with_fixture ~port response args =
     ~finally:(fun () -> Cli_fixture.close fixture)
     (fun () -> Cli_fixture.run fixture (args port))
 
+let with_pds_fixture ~port ~path response args =
+  let fixture = Cli_fixture.create ~port ~path response in
+  Fun.protect
+    ~finally:(fun () -> Cli_fixture.close fixture)
+    (fun () -> Cli_fixture.run fixture (args (endpoint port)))
+
+let resource_path endpoint url =
+  let prefix = endpoint in
+  String.sub url (String.length prefix)
+    (String.length url - String.length prefix)
+
+let json_member name json = Yojson.Safe.Util.member name json
+let json_string name json = json_member name json |> Yojson.Safe.Util.to_string
+
 let read_channel channel =
   let buffer = Bytes.create 4096 in
   let output = Buffer.create 4096 in
@@ -219,6 +233,165 @@ let () =
   assert_request markdown_result ~method_:"GET"
     ~url:(endpoint 43133 ^ "/xrpc/com.atproto.server.describeServer")
     ~body:"" ~authorization:"[REDACTED]";
+
+  let health_port = 43134 in
+  let health_response =
+    Cli_fixture.Json
+      (`Assoc
+         [
+           ("status", `String "ok");
+           ( "metrics",
+             `Assoc
+               [
+                 ("hostedAccountCount", `Int 2);
+                 ("repoCount", `Int 2);
+                 ("blobCount", `Int 9);
+                 ("sequencerCursor", `Int 42);
+               ] );
+         ])
+  in
+  let health_result =
+    with_pds_fixture ~port:health_port ~path:"/xrpc/_health" health_response
+      (fun pds -> [ "pds"; "health"; "--pds"; pds; "--format"; "json" ])
+  in
+  assert_int "PDS health exit status" 0 health_result.status;
+  assert_equal "PDS health stderr" "" health_result.stderr;
+  let health_json = Yojson.Safe.from_string health_result.stdout in
+  assert_equal "PDS health kind" "pds" (json_string "kind" health_json);
+  let health_meta = json_member "meta" health_json in
+  assert_equal "PDS health source" "pds" (json_string "source" health_meta);
+  assert_equal "PDS health endpoint"
+    (endpoint health_port ^ "/xrpc/_health")
+    (json_string "endpoint" health_meta);
+  assert_equal "PDS health PDS metadata" (endpoint health_port)
+    (json_string "pds" health_meta);
+  assert_equal "PDS health payload" "ok"
+    (json_string "status" (json_member "data" health_json));
+  let health_request = request_of_result health_result in
+  assert_equal "PDS health method" "GET" health_request.method_;
+  assert_equal "PDS health URL"
+    (endpoint health_port ^ "/xrpc/_health")
+    health_request.url;
+  assert_true "PDS health has no authorization"
+    (header "authorization" health_request.headers = None);
+
+  let health_markdown =
+    with_pds_fixture ~port:43135 ~path:"/xrpc/_health" health_response
+      (fun pds -> [ "pds"; "health"; "--pds"; pds; "--format"; "markdown" ])
+  in
+  assert_int "PDS health Markdown exit status" 0 health_markdown.status;
+  assert_contains "PDS health Markdown hostname" "hostname"
+    health_markdown.stdout;
+  assert_contains "PDS health Markdown account summary" "accountCount"
+    health_markdown.stdout;
+  assert_contains "PDS health Markdown provenance" "## Provenance"
+    health_markdown.stdout;
+  assert_contains "PDS health Markdown raw" "## Raw" health_markdown.stdout;
+
+  let admin_port = 43136 in
+  let admin_response =
+    Cli_fixture.Json
+      (`Assoc
+         [
+           ("status", `String "ok");
+           ("blobStore", `Assoc [ ("adapter", `String "s3") ]);
+           ( "accounts",
+             `List [ `Assoc [ ("repoCount", `Int 1); ("blobCount", `Int 3) ] ]
+           );
+         ])
+  in
+  let admin_result =
+    with_pds_fixture ~port:admin_port ~path:"/xrpc/_admin/status" admin_response
+      (fun pds ->
+        [
+          "pds";
+          "admin-status";
+          "--pds";
+          pds;
+          "--admin-token";
+          "fixture-admin-secret";
+          "--format";
+          "json";
+        ])
+  in
+  assert_int "PDS admin exit status" 0 admin_result.status;
+  assert_equal "PDS admin stderr" "" admin_result.stderr;
+  let admin_json = Yojson.Safe.from_string admin_result.stdout in
+  assert_equal "PDS admin endpoint"
+    (endpoint admin_port ^ "/xrpc/_admin/status")
+    (json_string "endpoint" (json_member "meta" admin_json));
+  assert_request admin_result ~method_:"GET"
+    ~url:(endpoint admin_port ^ "/xrpc/_admin/status")
+    ~body:"" ~authorization:"[REDACTED]";
+
+  let list_port = 43137 in
+  let list_endpoint = endpoint list_port in
+  let list_url = Ocaat__Pds.list_repos_url list_endpoint in
+  let list_result =
+    with_pds_fixture ~port:list_port
+      ~path:(resource_path list_endpoint list_url)
+      (Cli_fixture.Json
+         (`Assoc
+            [
+              ( "repos",
+                `List
+                  [
+                    `Assoc
+                      [
+                        ("did", `String "did:plc:fixture");
+                        ("rev", `String "3kfixture");
+                        ("active", `Bool true);
+                      ];
+                  ] );
+            ]))
+      (fun pds ->
+        [
+          "pds";
+          "account";
+          "list";
+          pds;
+          "--auth";
+          "fixture-account-secret";
+          "--format";
+          "json";
+        ])
+  in
+  assert_int "PDS account list exit status" 0 list_result.status;
+  let list_json = Yojson.Safe.from_string list_result.stdout in
+  assert_equal "PDS account list kind" "records" (json_string "kind" list_json);
+  assert_equal "PDS account list endpoint" list_url
+    (json_string "endpoint" (json_member "meta" list_json));
+  assert_request list_result ~method_:"GET" ~url:list_url ~body:""
+    ~authorization:"[REDACTED]";
+
+  let status_port = 43138 in
+  let status_endpoint = endpoint status_port in
+  let status_did = "did:plc:oga6ppys7zwxlheuqmcm7dac" in
+  let status_url = Ocaat__Pds.repo_status_url status_endpoint status_did in
+  let status_result =
+    with_pds_fixture ~port:status_port
+      ~path:(resource_path status_endpoint status_url)
+      (Cli_fixture.Json (`Assoc [ ("active", `Bool true) ]))
+      (fun pds ->
+        [
+          "pds";
+          "account";
+          "status";
+          status_did;
+          "--pds";
+          pds;
+          "--format";
+          "json";
+        ])
+  in
+  assert_int "PDS account status exit status" 0 status_result.status;
+  let status_json = Yojson.Safe.from_string status_result.stdout in
+  assert_equal "PDS account status DID" status_did
+    (json_string "did" (json_member "meta" status_json));
+  assert_equal "PDS account status endpoint" status_url
+    (json_string "endpoint" (json_member "meta" status_json));
+  assert_true "PDS account status has no authorization"
+    (header "authorization" (request_of_result status_result).headers = None);
 
   let binary_body = "CAR\000fixture-bytes" in
   let binary_result =

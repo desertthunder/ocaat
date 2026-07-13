@@ -149,10 +149,21 @@ let parse_json_response endpoint body =
   | exception Yojson.Json_error reason ->
       Error (endpoint ^ " returned invalid JSON: " ^ reason)
 
-let rec sum_int_field name = function
-  | [] -> 0
-  | json :: rest ->
-      Option.value ~default:0 (int_field name json) + sum_int_field name rest
+(* Sum a field only when at least one value was actually supplied. *)
+let sum_int_field name values =
+  let rec loop total = function
+    | [] -> total
+    | json :: rest ->
+        let total =
+          match int_field name json with
+          | None -> total
+          | Some value ->
+              let total = Option.value ~default:0 total in
+              Some (total + value)
+        in
+        loop total rest
+  in
+  loop None values
 
 type inspection = {
   hostname : string;
@@ -167,6 +178,7 @@ type inspection = {
   admin_auth_configured : bool option;
   status_cues : (string * string) list;
 }
+(** Normalized PDS facts used by the human inspection summary. *)
 
 let status_cues_from_health json =
   match field_path [ "health"; "checks" ] json with
@@ -223,7 +235,7 @@ let public_inspection ?service_did ?describe_body ~host json =
   }
 
 let admin_inspection ?service_did ?describe_body ~host json =
-  let accounts = Option.value ~default:[] (list_field "accounts" json) in
+  let accounts = list_field "accounts" json in
   {
     hostname = hostname host;
     service_did;
@@ -231,18 +243,58 @@ let admin_inspection ?service_did ?describe_body ~host json =
     account_count =
       (match int_path [ "blobStore"; "accountCount" ] json with
       | Some _ as count -> count
-      | None -> Some (List.length accounts));
-    repo_count = Some (sum_int_field "repoCount" accounts);
+      | None -> Option.map List.length accounts);
+    repo_count = Option.bind accounts (sum_int_field "repoCount");
     blob_count =
       (match int_path [ "blobStore"; "blobCount" ] json with
       | Some _ as count -> count
-      | None -> Some (sum_int_field "blobCount" accounts));
+      | None -> Option.bind accounts (sum_int_field "blobCount"));
     sequencer_cursor = int_path [ "sequencer"; "currentSeq" ] json;
     configured_crawlers = Option.bind describe_body crawlers_from_describe;
     storage_backend = string_path [ "blobStore"; "adapter" ] json;
     admin_auth_configured = bool_path [ "admin"; "tokenConfigured" ] json;
     status_cues = status_cues_from_health json;
   }
+
+let optional_field name to_json value fields =
+  match value with
+  | None -> fields
+  | Some value -> fields @ [ (name, to_json value) ]
+
+let string_json value = `String value
+let int_json value = `Int value
+let bool_json value = `Bool value
+let strings_json values = `List (List.map string_json values)
+
+let json_of_status_cues cues =
+  let value text =
+    match Yojson.Safe.from_string text with
+    | value -> value
+    | exception Yojson.Json_error _ -> `String text
+  in
+  `Assoc (List.map (fun (name, text) -> (name, value text)) cues)
+
+(** Convert normalized inspection facts to the Markdown presentation value.
+
+    Fields whose source did not expose a value are omitted instead of being
+    represented by a synthetic zero or "unknown" string. *)
+let inspection_to_json (inspection : inspection) =
+  let fields =
+    [ ("hostname", string_json inspection.hostname) ]
+    |> optional_field "serviceDid" string_json inspection.service_did
+    |> optional_field "health" string_json inspection.health_state
+    |> optional_field "accountCount" int_json inspection.account_count
+    |> optional_field "repoCount" int_json inspection.repo_count
+    |> optional_field "blobCount" int_json inspection.blob_count
+    |> optional_field "sequencerCursor" int_json inspection.sequencer_cursor
+    |> optional_field "configuredCrawlers" strings_json
+         inspection.configured_crawlers
+    |> optional_field "storageBackend" string_json inspection.storage_backend
+    |> optional_field "adminAuthConfigured" bool_json
+         inspection.admin_auth_configured
+  in
+  `Assoc
+    (fields @ [ ("statusCues", json_of_status_cues inspection.status_cues) ])
 
 (** Return the display status for a listRepos/getRepoStatus JSON object. *)
 let repo_status_text json =

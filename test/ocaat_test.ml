@@ -178,6 +178,22 @@ let () =
   assert_int_option (Some 77) admin_inspection.sequencer_cursor;
   assert_equal "s3" (Option.get admin_inspection.storage_backend);
   assert_bool_option (Some true) admin_inspection.admin_auth_configured;
+  let admin_without_metrics =
+    `Assoc [ ("status", `String "ok"); ("blobStore", `Assoc []) ]
+  in
+  let missing_admin_inspection =
+    Ocaat__Pds.admin_inspection ~host:"https://pds.example"
+      admin_without_metrics
+  in
+  assert_int_option None missing_admin_inspection.account_count;
+  assert_int_option None missing_admin_inspection.repo_count;
+  assert_int_option None missing_admin_inspection.blob_count;
+  let missing_summary =
+    Ocaat__Pds.inspection_to_json missing_admin_inspection
+  in
+  assert (Ocaat__Pds.json_field "accountCount" missing_summary = None);
+  assert (Ocaat__Pds.json_field "repoCount" missing_summary = None);
+  assert (Ocaat__Pds.json_field "blobCount" missing_summary = None);
   assert (Result.is_error (Ocaat__Pds.parse_json_response "_stats" "not-json"));
   let artifact_path =
     "/tmp/ocaat-artifact-helper-test-" ^ string_of_int (Unix.getpid ())

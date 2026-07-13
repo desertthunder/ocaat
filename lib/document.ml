@@ -7,8 +7,17 @@ type provenance = {
 }
 (** Provenance attached to a successful result document. *)
 
-type t = { kind : string; data : Yojson.Safe.t; meta : provenance }
-(** A versioned result document before rendering. *)
+type t = {
+  kind : string;
+  data : Yojson.Safe.t;
+  meta : provenance;
+  summary : Yojson.Safe.t option;
+}
+(** A versioned result document before rendering.
+
+    [summary] is presentation-only data. It is used by Markdown formatters and
+    is intentionally excluded from the JSON envelope so [data] remains the
+    authoritative protocol payload. *)
 
 (** Return the current UTC time in the document timestamp format. *)
 let fetched_at () =
@@ -17,11 +26,12 @@ let fetched_at () =
     (tm.tm_mon + 1) tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
 
 (** Build a document with a fresh provenance timestamp. *)
-let make ?did ?pds ~source ~endpoint ~kind data =
+let make ?did ?pds ?summary ~source ~endpoint ~kind data =
   {
     kind;
     data;
     meta = { source; endpoint; fetched_at = fetched_at (); did; pds };
+    summary;
   }
 
 (** Render provenance as the [meta] object used by the document contract. *)
