@@ -185,23 +185,10 @@ resource, and output-contract reference files.
 ### T15: Package the atproto-research skill
 
 **Spec:** [Agent skills and self-description](specs/agent-skills-and-self-description.md)
+**Status:** complete
 
-**What to build:** Write the research SKILL.md plus discovery and provenance
-references for evidence-oriented resource investigation.
-
-**Blocked by:** T06, T07, T10
-
-**Acceptance criteria:**
-
-- [ ] Discovery workflows use available resolve, get, record, PLC, and
-      collection-summary commands.
-- [ ] Collection discovery and backlinks are marked planned rather than
-      described as working features.
-- [ ] Every research workflow records source, endpoint, fetch time, and gaps.
-
-**Verification:**
-
-- Review the skill against fixture-backed CLI examples.
+Wrote the research SKILL.md plus discovery and provenance references for
+evidence-oriented resource investigation.
 
 ### T16: Package the atproto-lexicons skill
 

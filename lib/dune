@@ -30,6 +30,7 @@
   Record
   Resource
   Renderer
+  Skill
   Syntax
   Xrpc
   Plc)
@@ -51,4 +52,8 @@
   yojson
   uri)
  (preprocess
-  (pps lwt_ppx)))
+  (pps lwt_ppx ppx_blob))
+ (preprocessor_deps
+  (file ../skills/atproto-research/SKILL.md)
+  (file ../skills/atproto-research/references/discovery.md)
+  (file ../skills/atproto-research/references/provenance.md)))

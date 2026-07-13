@@ -37,3 +37,8 @@
  (modules cli_fixture resource_test)
  (deps ../bin/main.exe)
  (libraries ocaat cohttp-lwt-unix lwt.unix unix yojson))
+
+(test
+ (name skill_test)
+ (modules skill_test)
+ (libraries ocaat))

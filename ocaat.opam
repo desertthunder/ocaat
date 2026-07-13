@@ -12,6 +12,7 @@ depends: [
   "cmarkit" {= "0.4.0"}
   "lwt_ssl"
   "lwt_ppx"
+  "ppx_blob"
   "mirage-crypto-rng"
   "yojson"
   "zarith"
