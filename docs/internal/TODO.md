@@ -71,17 +71,10 @@ and the resolve command.
 ### T07: Implement record and PLC reads
 
 **Spec:** [Record and PLC reads](specs/record-and-plc-reads.md)
+**Status:** complete
 
-**What to build:** Add record get, record-list page and collection-summary
-modes, PLC show, and PLC history using the identity result.
-
-**Blocked by:** T01, T02, T06
-
-**Acceptance criteria:**
-
-- [ ] Record reads use the actor PDS unless --pds explicitly overrides it.
-- [ ] Collection summaries and record pages are distinct validated modes.
-- [ ] PLC responses are direct directory evidence, not inferred from PDS state.
+Added record get, record-list page and collection-summary modes, PLC show, and PLC
+history using the identity result.
 
 **Verification:**
 
@@ -150,6 +143,7 @@ AT Protocol web URLs, NSIDs, and PDS URLs.
 
 - dune runtest
 - dune exec -- ocaat get did:plc:oga6ppys7zwxlheuqmcm7dac --format json
+- dune exec -- ocaat get did:plc:xg2vq45muivyy3xwatcehspu --format json
 
 ### T11: Add deterministic JSONL batch reads
 

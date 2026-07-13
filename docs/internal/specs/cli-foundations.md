@@ -18,10 +18,10 @@ helpers. Existing output currently prints endpoint response bodies directly.
 
 Replace the shared boolean with an output format:
 
-~~~text
+```text
 --format markdown|json|jsonl|raw
 --json                         alias for --format json
-~~~
+```
 
 Markdown is the default. JSONL is available only on commands that can produce a
 sequence, initially batch. Raw is an explicit payload passthrough and is never
@@ -29,7 +29,7 @@ the default.
 
 Successful structured output uses this document shape:
 
-~~~json
+```json
 {
   "schema": "ocaat.document.v1",
   "kind": "identity|record|records|plc|lexicon|pds|car|capabilities|doctor",
@@ -42,7 +42,7 @@ Successful structured output uses this document shape:
     "pds": "optional PDS URL"
   }
 }
-~~~
+```
 
 Data is the protocol payload with secrets redacted. Metadata describes the
 actual source, never merely the requested source. Markdown renders the same
@@ -78,11 +78,11 @@ JSON errors use a versioned error document when a command has selected JSON.
 
 ## Verification
 
-~~~sh
+```sh
 dune runtest
 dune exec -- ocaat pds describe https://tempest.desertthunder.dev --format json
 dune exec -- ocaat syntax did check did:plc:oga6ppys7zwxlheuqmcm7dac --json
-~~~
+```
 
 Add CLI-level tests for format selection, JSON aliasing, stdout versus stderr,
 metadata presence, and redaction.

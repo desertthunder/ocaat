@@ -16,11 +16,15 @@ type request = {
 }
 (** Sanitized request metadata captured by a fixture. *)
 
+type route = string * response
+(** One deterministic path and response served by a fixture. *)
+
 type command_result = {
   status : int;
   stdout : string;
   stderr : string;
   request : request option;
+  requests : request list;
 }
 (** Result of one CLI invocation, including the fixture's observed request. *)
 
@@ -33,13 +37,13 @@ type rendered_response = {
 
 type t = {
   port : int;
-  path : string;
   endpoint : string;
   server_pid : int;
   request_read : file_descr;
   mutable server_reaped : bool;
   mutable request_read_complete : bool;
   mutable request : request option;
+  mutable requests : request list option;
   mutable command_run : bool;
 }
 
@@ -99,31 +103,28 @@ let request_metadata ~endpoint request body =
     body = Ocaat__Redaction.body body;
   }
 
-let response_for_path ~path ~request_resource response =
-  if path = request_resource then render_response response
-  else
-    {
-      status = 404;
-      content_type = "text/plain";
-      body = "fixture route not found";
-      delay = 0.0;
-    }
+let response_for_routes ~routes ~request_resource =
+  match List.assoc_opt request_resource routes with
+  | Some response -> render_response response
+  | None ->
+      {
+        status = 404;
+        content_type = "text/plain";
+        body = "fixture route not found";
+        delay = 0.0;
+      }
 
-let run_server ~endpoint ~port ~path response write_fd =
+let run_server ~endpoint ~port ~routes write_fd =
   let output = out_channel_of_descr write_fd in
-  let captured = ref false in
   let callback _connection request body =
     let open Lwt.Syntax in
     let* body = Cohttp_lwt.Body.to_string body in
-    if not !captured then (
-      captured := true;
-      let metadata = request_metadata ~endpoint request body in
-      Marshal.to_channel output metadata [];
-      flush output);
+    let metadata = request_metadata ~endpoint request body in
+    Marshal.to_channel output metadata [];
+    flush output;
     let rendered =
-      response_for_path ~path
+      response_for_routes ~routes
         ~request_resource:(Cohttp.Request.resource request)
-        response
     in
     let* () =
       if rendered.delay = 0.0 then Lwt.return_unit
@@ -170,17 +171,20 @@ let wait_for_port ~pid port =
   in
   loop 500
 
-(** Start a deterministic loopback HTTP fixture at [path]. *)
-let create ?(port = default_port) ~path response =
+(** Start a deterministic loopback HTTP fixture with several exact routes. *)
+let create_routes ?(port = default_port) routes =
   validate_port port;
-  validate_path path;
-  ignore (render_response response);
+  List.iter
+    (fun (path, response) ->
+      validate_path path;
+      ignore (render_response response))
+    routes;
   let endpoint = Printf.sprintf "http://127.0.0.1:%d" port in
   let request_read, request_write = pipe () in
   match fork () with
   | 0 ->
       close request_read;
-      run_server ~endpoint ~port ~path response request_write;
+      run_server ~endpoint ~port ~routes request_write;
       exit 0
   | server_pid -> (
       close request_write;
@@ -188,13 +192,13 @@ let create ?(port = default_port) ~path response =
         wait_for_port ~pid:server_pid port;
         {
           port;
-          path;
           endpoint;
           server_pid;
           request_read;
           server_reaped = false;
           request_read_complete = false;
           request = None;
+          requests = None;
           command_run = false;
         }
       with error ->
@@ -203,6 +207,10 @@ let create ?(port = default_port) ~path response =
          with Unix_error (ECHILD, _, _) -> ());
         close_noerr request_read;
         raise error)
+
+(** Start a deterministic loopback HTTP fixture at one exact [path]. *)
+let create ?(port = default_port) ~path response =
+  create_routes ~port [ (path, response) ]
 
 (** Return the base URL used by the fixture. *)
 let endpoint fixture = fixture.endpoint
@@ -294,17 +302,24 @@ let run_cli ?(timeout = 10.0) args =
     close_noerr stderr_read;
     raise error
 
-let read_request fixture =
+let read_requests fixture =
   if not fixture.request_read_complete then (
     fixture.request_read_complete <- true;
     let input = in_channel_of_descr fixture.request_read in
+    let rec read acc =
+      match Marshal.from_channel input with
+      | request -> read (request :: acc)
+      | exception End_of_file -> List.rev acc
+    in
+    let requests = read [] in
+    fixture.requests <- Some requests;
     fixture.request <-
-      (try Some (Marshal.from_channel input) with End_of_file -> None);
+      (match requests with first :: _ -> Some first | [] -> None);
     close_in_noerr input);
-  fixture.request
+  Option.value ~default:[] fixture.requests
 
-(** Stop a fixture and return its sanitized captured request, if any. *)
-let stop fixture =
+(** Stop a fixture and return all sanitized captured requests. *)
+let stop_all fixture =
   (if not fixture.server_reaped then
      let pid, _ = waitpid_retry [ WNOHANG ] fixture.server_pid in
      if pid = 0 then (
@@ -313,7 +328,11 @@ let stop fixture =
        ignore (waitpid_retry [] fixture.server_pid))
      else fixture.server_reaped <- true);
   if not fixture.server_reaped then fixture.server_reaped <- true;
-  read_request fixture
+  read_requests fixture
+
+(** Stop a fixture and return its first sanitized request, if any. *)
+let stop fixture =
+  match stop_all fixture with first :: _ -> Some first | [] -> None
 
 (** Run one CLI invocation against the fixture executable boundary. *)
 let run fixture args =
@@ -321,11 +340,12 @@ let run fixture args =
   fixture.command_run <- true;
   try
     let status, stdout, stderr = run_cli args in
-    let request = stop fixture in
-    { status; stdout; stderr; request }
+    let requests = stop_all fixture in
+    let request = match requests with first :: _ -> Some first | [] -> None in
+    { status; stdout; stderr; request; requests }
   with error ->
     ignore (stop fixture);
     raise error
 
 (** Release a fixture when a test exits before [run] completes. *)
-let close fixture = ignore (stop fixture)
+let close fixture = ignore (stop_all fixture)

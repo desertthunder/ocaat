@@ -58,6 +58,7 @@ separate human messages from stdout.
 ```sh
 dune runtest
 printf '%s\n' '{"resource":"did:plc:oga6ppys7zwxlheuqmcm7dac"}' | dune exec -- ocaat batch
+printf '%s\n' '{"resource":"did:plc:xg2vq45muivyy3xwatcehspu"}' | dune exec -- ocaat batch
 ```
 
 Add fixtures covering success, invalid JSON, invalid resource, remote failure,

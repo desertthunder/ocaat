@@ -125,6 +125,27 @@ let print_http_response ?(kind = "pds") ?(source = "pds") ?did ?pds ?summary
     remote_error ~status:response.status ~format
       (message_of_http_response ~endpoint response)
 
+(** Parse and render a successful JSON response while preserving the shared HTTP
+    error contract for unsuccessful responses. *)
+let print_parsed_response ?did ?pds ?summary ~kind ~source ~endpoint ~format
+    ~parse (response : Http.response) =
+  if response.Http.status >= 200 && response.status < 300 then (
+    match parse response.body with
+    | Error reason -> remote_error ~format reason
+    | Ok data ->
+        if format = Format.Raw then (
+          Renderer.print_stdout (Renderer.raw response.body);
+          Exit_code.ok)
+        else
+          let document =
+            Document.make ?did ?pds ?summary ~source ~endpoint ~kind data
+          in
+          Renderer.print_stdout (Renderer.document format document);
+          Exit_code.ok)
+  else
+    print_http_response ~kind ~source ?did ?pds ?summary ~require_json:true
+      ~endpoint ~format response
+
 (** Validation helpers that run before network or filesystem work. *)
 module Preflight = struct
   let require_value name = function

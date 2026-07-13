@@ -5,8 +5,10 @@
   Cli_account
   Cli_context
   Cli_identity
+  Cli_plc
   Cli_key
   Cli_pds
+  Cli_record
   Cli_relay
   Cli_syntax
   Cli_xrpc
@@ -22,9 +24,11 @@
   Pds
   Relay
   Redaction
+  Record
   Renderer
   Syntax
-  Xrpc)
+  Xrpc
+  Plc)
  (libraries
   cmdliner
   fmt

@@ -97,10 +97,15 @@ let did_method did =
   | _ -> None
 
 (** Return the fetch endpoint and source for a supported DID method. *)
-let did_document_url did =
+let did_document_url ?plc_host did =
   try
     match did_method did with
-    | Some "plc" -> Ok ("https://plc.directory/" ^ did, "plc")
+    | Some "plc" ->
+        let plc_host =
+          Option.value ~default:"https://plc.directory" plc_host
+          |> Http.normalize_base_url
+        in
+        Ok (plc_host ^ "/" ^ did, "plc")
     | Some "web" -> (
         let identifier = String.sub did 8 (String.length did - 8) in
         if String.contains identifier ':' then
@@ -241,8 +246,8 @@ let parse_did_document ~did ~endpoint (response : Http.response) =
             Error
               (Remote (None, endpoint ^ " returned a DID document without id")))
 
-let resolve_did did =
-  match did_document_url did with
+let resolve_did ?plc_host did =
+  match did_document_url ?plc_host did with
   | Error reason -> Lwt.return (Error (Validation reason))
   | Ok (endpoint, source) -> (
       let open Lwt.Syntax in
@@ -351,12 +356,12 @@ let parse_input value =
         Error (Validation ("invalid handle or DID: " ^ reason))
 
 (** Resolve a handle or DID with bidirectional handle verification. *)
-let resolve value =
+let resolve ?plc_host value =
   match parse_input value with
   | Error error -> Lwt.return (Error error)
   | Ok (Did did) -> (
       let open Lwt.Syntax in
-      let+ result = resolve_did did in
+      let+ result = resolve_did ?plc_host did in
       match result with
       | Error error -> Error error
       | Ok resolved ->
@@ -382,7 +387,7 @@ let resolve value =
       match did_result with
       | Error error -> Lwt.return (Error error)
       | Ok (did, handle_source) -> (
-          let+ document_result = resolve_did did in
+          let+ document_result = resolve_did ?plc_host did in
           match document_result with
           | Error error -> Error error
           | Ok resolved ->

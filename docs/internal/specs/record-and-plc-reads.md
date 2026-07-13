@@ -1,6 +1,6 @@
 ---
 title: Record and PLC reads
-status: ready
+status: complete
 ---
 
 ## Purpose
@@ -10,30 +10,34 @@ and the identity history that authorizes its PDS.
 
 ## Commands
 
-~~~text
+```text
 ocaat record get <at-uri>
 ocaat record list <handle-or-did> --collection <nsid> [--limit <n>] [--cursor <cursor>]
 ocaat record list <handle-or-did> --collections
-ocaat plc show <handle-or-did>
-ocaat plc history <handle-or-did>
-~~~
+ocaat plc show <handle-or-did> [--plc-host <url>]
+ocaat plc history <handle-or-did> [--plc-host <url>]
+```
 
 The two record-list modes are mutually exclusive. The collection-summary mode
 uses describeRepo; the record mode uses listRecords and returns the next cursor
 when present.
 
 Plc show returns the current PLC operation and normalized DID context. Plc
-history returns the operation log in chronological order. A non-PLC DID produces
-a clear validation result rather than an invented PLC history.
+history returns the directory's operation log in chronological order. A
+non-PLC DID produces a clear validation result rather than an invented PLC
+history.
 
 ## Current state
 
-Tempest exposes com.atproto.repo.getRecord, listRecords, and describeRepo as
-public queries. The project has no Record, Plc, or Identity module yet.
+Record and PLC reads use the normalized identity result and shared document and
+error envelopes. Record queries select the actor PDS by default, support an
+explicit `--pds` override, and keep collection-summary mode separate from
+record pages. PLC reads call the directory's `/data` and `/log` endpoints
+directly; `--plc-host` is available for compatible directories and fixtures.
 
 ## Technical plan
 
-- Depend on the normalized actor and PDS result from Resource resolution.
+- Depend on the normalized actor and PDS result from identity resolution.
 - Parse AT URIs into DID, collection, and record key before constructing
   com.atproto.repo.getRecord.
 - Preserve protocol record fields and CID values in data; add transport facts
@@ -41,6 +45,8 @@ public queries. The project has no Record, Plc, or Identity module yet.
 - Query PLC directly for did:plc operations. Do not treat a PDS account response
   as PLC directory evidence.
 - Bound limit values and validate cursors and collection NSIDs before requests.
+- Preserve protocol response fields in `data`; keep answering endpoints and
+  selected services in document provenance.
 
 ## Acceptance criteria
 
@@ -54,15 +60,16 @@ public queries. The project has no Record, Plc, or Identity module yet.
 
 ## Verification
 
-~~~sh
+```sh
 dune runtest
 dune exec -- ocaat record get at://did:plc:oga6ppys7zwxlheuqmcm7dac/app.bsky.actor.profile/self --format json
 dune exec -- ocaat record list did:plc:oga6ppys7zwxlheuqmcm7dac --collections --format json
 dune exec -- ocaat plc show did:plc:oga6ppys7zwxlheuqmcm7dac --format json
-~~~
+```
 
-Use mocked PDS and PLC HTTP fixtures for every automatic test. The live commands
-are manual compatibility checks and must not be snapshot asserted.
+The automatic tests use mocked identity, PDS, and PLC HTTP fixtures at the CLI
+boundary. The live commands are manual compatibility checks and must not be
+snapshot asserted.
 
 ## Subsequent planned work
 

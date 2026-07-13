@@ -59,8 +59,10 @@ let root_cmd =
       tempest_cmd;
       Cli_account.cmd;
       Cli_identity.cmd;
+      Cli_plc.cmd;
       Cli_key.cmd;
       Cli_pds.cmd;
+      Cli_record.cmd;
       Cli_relay.cmd;
       Cli_syntax.cmd;
       Cli_xrpc.cmd;

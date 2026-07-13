@@ -38,16 +38,16 @@ this reference.
 
 ## Exit codes
 
-| Code | Meaning |
-| ---: | --- |
-| 0 | success |
-| 64 | usage error |
-| 65 | validation error |
-| 66 | authentication or authorization error |
-| 69 | network error |
-| 70 | remote HTTP/XRPC error |
-| 74 | filesystem error |
-| 130 | interrupted operation |
+| Code | Meaning                               |
+| ---: | ------------------------------------- |
+|    0 | success                               |
+|   64 | usage error                           |
+|   65 | validation error                      |
+|   66 | authentication or authorization error |
+|   69 | network error                         |
+|   70 | remote HTTP/XRPC error                |
+|   74 | filesystem error                      |
+|  130 | interrupted operation                 |
 
 With JSON selected, errors are versioned `ocaat.error.v1` documents on stderr.
 
@@ -192,6 +192,44 @@ ocaat resolve alice.example --format json
 ocaat resolve did:plc:oga6ppys7zwxlheuqmcm7dac --format markdown
 ```
 
+## Records and PLC
+
+### record get
+
+Fetches one record from the PDS selected by a complete AT URI's authority.
+The URI must contain an authority, collection NSID, and record key.
+
+```sh
+ocaat record get at://did:plc:oga6ppys7zwxlheuqmcm7dac/app.bsky.actor.profile/self --format json
+```
+
+### record list
+
+Record mode requires `--collection` and supports `--limit` from 1 to 100 plus
+an opaque `--cursor`. Collection-summary mode uses `--collections`; the two
+modes cannot be combined. Record mode calls `com.atproto.repo.listRecords`,
+while summary mode calls `com.atproto.repo.describeRepo`.
+
+```sh
+ocaat record list did:plc:oga6ppys7zwxlheuqmcm7dac --collection app.bsky.feed.post --limit 25
+ocaat record list did:plc:oga6ppys7zwxlheuqmcm7dac --collections --format json
+```
+
+Record reads use the resolved actor PDS unless `--pds URL` overrides it. The
+selected endpoint is retained in provenance.
+
+### plc show and plc history
+
+Reads current PLC data from `<plc-host>/<did>/data` or the operation log from
+`<plc-host>/<did>/log`. `--plc-host` defaults to `https://plc.directory`.
+Handles are resolved before the directory request, and non-PLC DIDs are
+rejected.
+
+```sh
+ocaat plc show did:plc:oga6ppys7zwxlheuqmcm7dac --format json
+ocaat plc history did:plc:oga6ppys7zwxlheuqmcm7dac --format json
+```
+
 ## Key management
 
 Key commands produce local `doctor` documents with the selected format.
@@ -303,3 +341,7 @@ XRPC queries are read-only GET requests and return a `pds` document.
 Calls a validated method NSID against `--pds URL`. Repeated `--param K=V`
 options become URL query parameters. Procedures are outside this command's
 read-only scope.
+
+## See Also
+
+[RTFM](https://en.wikipedia.org/wiki/RTFM)
