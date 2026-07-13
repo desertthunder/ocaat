@@ -56,4 +56,6 @@
  (preprocessor_deps
   (file ../skills/atproto-research/SKILL.md)
   (file ../skills/atproto-research/references/discovery.md)
-  (file ../skills/atproto-research/references/provenance.md)))
+  (file ../skills/atproto-research/references/provenance.md)
+  (file ../skills/atproto-lexicons/SKILL.md)
+  (file ../skills/atproto-lexicons/references/lexicon-workflows.md)))

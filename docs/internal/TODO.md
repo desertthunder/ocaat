@@ -98,8 +98,8 @@ handling.
 **Status:** complete
 **Spec:** [Resource resolution and universal get](specs/resource-resolution-and-universal-get.md)
 
-Added the get dispatcher for handles, DIDs, AT URIs,
-supported AT Protocol web URLs, NSIDs, and PDS URLs.
+Added the get dispatcher for handles, DIDs, AT URIs, supported AT Protocol web URLs,
+NSIDs, and PDS URLs.
 
 ### T11: Add deterministic JSONL batch reads
 
@@ -193,21 +193,9 @@ evidence-oriented resource investigation.
 ### T16: Package the atproto-lexicons skill
 
 **Spec:** [Agent skills and self-description](specs/agent-skills-and-self-description.md)
+**Status:** complete
 
-**What to build:** Write the Lexicon SKILL.md and read-only workflow reference.
-
-**Blocked by:** T08, T09
-
-**Acceptance criteria:**
-
-- [ ] It covers Lexicon get, describe, and XRPC-description workflows.
-- [ ] Local validation, publishing, and compatibility analysis are marked as
-      planned work.
-- [ ] It explains authority resolution and source provenance.
-
-**Verification:**
-
-- Review documented examples through dune exec -- ocaat xrpc describe.
+Wrote the read-only Lexicon skill.
 
 ### T17: Add skill installation and CLI self-description
 

@@ -21,5 +21,17 @@ let atproto_research =
       ];
   }
 
-(** Every skill embedded in the executable. Add later skills here. *)
-let all = [ atproto_research ]
+(** The read-only Lexicon inspection skill shipped with this release. *)
+let atproto_lexicons =
+  {
+    name = "atproto-lexicons";
+    files =
+      [
+        file "SKILL.md" [%blob "../skills/atproto-lexicons/SKILL.md"];
+        file "references/lexicon-workflows.md"
+          [%blob "../skills/atproto-lexicons/references/lexicon-workflows.md"];
+      ];
+  }
+
+(** Every skill embedded in the executable. *)
+let all = [ atproto_research; atproto_lexicons ]
