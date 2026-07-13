@@ -172,7 +172,7 @@ let validate_nsid value =
   if len > 317 then Invalid "NSID is longer than 317 characters"
   else
     match parts with
-    | _ :: _ :: _ ->
+    | _ :: _ :: _ :: _ ->
         let rec split_name = function
           | [] -> ([], "")
           | [ name ] -> ([], name)

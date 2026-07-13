@@ -95,24 +95,11 @@ handling.
 
 ### T10: Add universal get
 
+**Status:** complete
 **Spec:** [Resource resolution and universal get](specs/resource-resolution-and-universal-get.md)
 
-**What to build:** Add the get dispatcher for handles, DIDs, AT URIs, supported
-AT Protocol web URLs, NSIDs, and PDS URLs.
-
-**Blocked by:** T05, T06, T07, T09
-
-**Acceptance criteria:**
-
-- [ ] Each input class dispatches to exactly one documented read path.
-- [ ] Web URLs normalize only when their shape is documented.
-- [ ] Failed PDS reads never trigger hidden AppView, relay, or backlink calls.
-
-**Verification:**
-
-- `dune runtest`
-- `dune exec -- ocaat get did:plc:oga6ppys7zwxlheuqmcm7dac --format json`
-- `dune exec -- ocaat get did:plc:xg2vq45muivyy3xwatcehspu --format json`
+Added the get dispatcher for handles, DIDs, AT URIs,
+supported AT Protocol web URLs, NSIDs, and PDS URLs.
 
 ### T11: Add deterministic JSONL batch reads
 

@@ -4,6 +4,7 @@
   Ocaat
   Cli_account
   Cli_context
+  Cli_get
   Cli_identity
   Cli_plc
   Cli_key
@@ -27,6 +28,7 @@
   Relay
   Redaction
   Record
+  Resource
   Renderer
   Syntax
   Xrpc

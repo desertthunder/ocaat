@@ -1,6 +1,6 @@
 ---
 title: Resource resolution and universal get
-status: ready
+status: complete
 ---
 
 ## Purpose
@@ -44,17 +44,21 @@ reports the service that answered it.
 Syntax validation covers handles, DIDs, AT URIs, NSIDs, and safe service URLs.
 The identity module now resolves handles through DNS TXT and the HTTPS well-known
 method, fetches supported DID documents, and extracts validated PDS services.
-The universal resource dispatcher and web-URL normalizer remain future work.
+The top-level `get` command now classifies a resource before any network request
+and delegates exactly once to the identity, record, Lexicon, or PDS read path.
+It recognizes Bluesky profile, post, list, and feed URLs and normalizes them to
+record AT URIs. Other web URLs are rejected instead of being scraped.
 
 ## Technical plan
 
 - Identity resolves handles, fetches DID documents for did:plc and did:web, and
   extracts normalized actor and PDS results.
 - Keep unsupported DID methods as validation errors rather than guessing.
-- Add Resource to classify input only after syntax validation. Its dispatcher
-  calls Identity, Record, Lexicon, or Pds; it does not duplicate their logic.
-- Normalize only documented AT Protocol web URL shapes. Reject other web URLs
-  with an actionable error instead of scraping pages.
+- Resource classifies input only after syntax validation. Its dispatcher calls
+  Identity, Record, Lexicon, or Pds; it does not duplicate their logic.
+- Web normalization accepts only `https://bsky.app/profile/<actor>`,
+  `/post/<rkey>`, `/lists/<rkey>`, and `/feed/<rkey>` shapes. Other web URLs
+  fail validation without a request.
 - Cache is not required for the first release. A later cache must preserve
   fetched_at and never hide which source supplied a result.
 

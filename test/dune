@@ -31,3 +31,9 @@
  (modules cli_fixture lexicon_test)
  (deps ../bin/main.exe)
  (libraries ocaat cohttp-lwt-unix lwt.unix unix yojson))
+
+(test
+ (name resource_test)
+ (modules cli_fixture resource_test)
+ (deps ../bin/main.exe)
+ (libraries ocaat cohttp-lwt-unix lwt.unix unix yojson))

@@ -192,6 +192,33 @@ ocaat resolve alice.example --format json
 ocaat resolve did:plc:oga6ppys7zwxlheuqmcm7dac --format markdown
 ```
 
+### get
+
+Dispatches one resource to the matching read path. Handles and DIDs return
+identity documents, complete AT URIs return records, NSIDs return published
+Lexicons, and service URLs call `com.atproto.server.describeServer`.
+
+The supported Bluesky web forms are `https://bsky.app/profile/<actor>`,
+`/post/<rkey>`, `/lists/<rkey>`, and `/feed/<rkey>`.
+
+They are normalized locally to the corresponding profile, post, list, or feed-generator
+record before the actor's PDS is resolved.
+
+Unsupported web URLs are validation errors.
+
+```sh
+ocaat get did:plc:oga6ppys7zwxlheuqmcm7dac --format json
+ocaat get at://did:plc:oga6ppys7zwxlheuqmcm7dac/app.bsky.actor.profile/self --format json
+ocaat get https://bsky.app/profile/alice.example/post/3kabc --format json
+ocaat get https://pds.example --format json
+```
+
+PDS-backed branches use the PDS declared by the resolved identity.
+
+Pass `--pds URL` to override only that request endpoint, keeping it visible in document
+provenance. A failed PDS request is not retried against an AppView, relay, or backlink
+service.
+
 ## Records and PLC
 
 ### record get

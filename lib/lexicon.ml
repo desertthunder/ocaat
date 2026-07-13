@@ -294,29 +294,55 @@ let fetch_record ~auth ~nsid ~authority ~did ~did_endpoint ~dns_endpoint ~pds =
           }
 
 (** Resolve and validate one network-published Lexicon. *)
-let get ?auth nsid =
-  match authority_of_nsid nsid with
+let validate_pds_override = function
+  | None -> Ok None
+  | Some value -> (
+      let value =
+        if
+          String.starts_with ~prefix:"http://" value
+          || String.starts_with ~prefix:"https://" value
+        then value
+        else "https://" ^ value
+      in
+      match Syntax.validate_service_url value with
+      | Syntax.Valid -> Ok (Some (Http.normalize_base_url value))
+      | Syntax.Invalid reason ->
+          Error (Validation ("lexicon PDS override: " ^ reason)))
+
+let get ?auth ?pds nsid =
+  match validate_pds_override pds with
   | Error error -> Lwt.return (Error error)
-  | Ok authority -> (
-      match dns_authority authority with
+  | Ok pds_override -> (
+      match authority_of_nsid nsid with
       | Error error -> Lwt.return (Error error)
-      | Ok (did, dns_endpoint) -> (
-          let open Lwt.Syntax in
-          let* did_result = resolve_did did in
-          match did_result with
+      | Ok authority -> (
+          match dns_authority authority with
           | Error error -> Lwt.return (Error error)
-          | Ok (did_endpoint, resolved) -> (
-              match resolved.Identity.pds_endpoint with
-              | None ->
-                  Lwt.return
-                    (Error
-                       (Validation
-                          ("lexicon PDS resolution: DID document for " ^ did
-                         ^ " at " ^ did_endpoint
-                         ^ " does not declare an AtprotoPersonalDataServer")))
-              | Some pds ->
-                  fetch_record ~auth ~nsid ~authority ~did ~did_endpoint
-                    ~dns_endpoint ~pds)))
+          | Ok (did, dns_endpoint) -> (
+              let open Lwt.Syntax in
+              let* did_result = resolve_did did in
+              match did_result with
+              | Error error -> Lwt.return (Error error)
+              | Ok (did_endpoint, resolved) -> (
+                  let pds_result =
+                    match pds_override with
+                    | Some pds -> Ok pds
+                    | None -> (
+                        match resolved.Identity.pds_endpoint with
+                        | Some pds -> Ok pds
+                        | None ->
+                            Error
+                              (Validation
+                                 ("lexicon PDS resolution: DID document for "
+                                ^ did ^ " at " ^ did_endpoint
+                                ^ " does not declare an \
+                                   AtprotoPersonalDataServer")))
+                  in
+                  match pds_result with
+                  | Error error -> Lwt.return (Error error)
+                  | Ok pds ->
+                      fetch_record ~auth ~nsid ~authority ~did ~did_endpoint
+                        ~dns_endpoint ~pds))))
 
 let method_kind definition =
   match string_field "type" definition with

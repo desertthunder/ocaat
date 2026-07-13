@@ -26,7 +26,11 @@ let render query data context =
     Output.Exit_code.ok
 
 let get nsid context =
-  match Lwt_main.run (Lexicon.get ?auth:context.Cli_context.auth nsid) with
+  match
+    Lwt_main.run
+      (Lexicon.get ?auth:context.Cli_context.auth ?pds:context.Cli_context.pds
+         nsid)
+  with
   | Error error -> print_failure context error
   | Ok query -> render query query.Lexicon.document context
 
